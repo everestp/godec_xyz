@@ -14,6 +14,8 @@ import numberGameImage from "@/assets/number-game-card.jpg";
 import logicGameImage from "@/assets/logic-game-card.jpg";
 import blogImage from "@/assets/blog-card.jpg";
 import lotteryImage from "@/assets/lottery-card.jpg";
+import {  useNavigate } from "react-router";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   const apps = [
@@ -111,7 +113,7 @@ const Index = () => {
       description: "Built by the community, for the community, on an open network."
     }
   ];
-
+const navigate = useNavigate()
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -139,9 +141,11 @@ const Index = () => {
                 <Brain className="w-5 h-5 mr-2" />
                 Connect Wallet
               </Button>
-              <Button variant="outline" size="lg" className="px-8 py-6 text-lg">
+              <Link to={"/learn-more"}>
+              <Button variant="outline" size="lg" className="px-8 py-6 text-lg" >
                 Learn More
               </Button>
+              </Link>
             </div>
 
             {/* Feature Pills */}
@@ -208,7 +212,7 @@ const Index = () => {
           </div>
           
           <div className="mt-12 pt-8 border-t border-border/30 text-center text-sm text-muted-foreground">
-            <p>© 2024 godec.fun - Empowering decentralization, one app at a time.</p>
+            <p>© {new Date().getFullYear()} godec.fun - Empowering decentralization, one app at a time.</p>
           </div>
         </div>
       </footer>

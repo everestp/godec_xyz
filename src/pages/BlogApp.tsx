@@ -16,6 +16,8 @@ interface BlogPost {
   date: string;
   tags: string[];
   excerpt: string;
+  image_url:string;
+  reading_time:string
 }
 
 const BlogApp = () => {

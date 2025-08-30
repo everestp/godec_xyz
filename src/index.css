@@ -8,67 +8,44 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Bitcoin-inspired dark theme */
+    /* Existing Bitcoin-inspired dark theme */
     --background: 220 13% 6%;
     --foreground: 39 12% 95%;
-
     --card: 220 13% 8%;
     --card-foreground: 39 12% 95%;
-
     --popover: 220 13% 8%;
     --popover-foreground: 39 12% 95%;
-
     --primary: 39 100% 53%; /* Bitcoin Orange */
     --primary-foreground: 220 13% 6%;
-
     --secondary: 217 19% 12%;
     --secondary-foreground: 39 12% 95%;
-
     --muted: 217 19% 12%;
     --muted-foreground: 39 12% 75%;
-
     --accent: 43 96% 56%; /* Bitcoin Gold */
     --accent-foreground: 220 13% 6%;
-
     --destructive: 0 84% 60%;
     --destructive-foreground: 39 12% 95%;
-
     --border: 217 19% 15%;
     --input: 217 19% 15%;
     --ring: 39 100% 53%;
-
     --radius: 0.75rem;
-
-    /* Custom Bitcoin theme variables */
     --bitcoin-orange: 39 100% 53%;
     --bitcoin-gold: 43 96% 56%;
     --bitcoin-dark: 220 13% 6%;
     --bitcoin-card: 220 13% 8%;
     --bitcoin-card-hover: 220 13% 12%;
-    
-    /* Gradients */
     --gradient-bitcoin: linear-gradient(135deg, hsl(var(--bitcoin-orange)), hsl(var(--bitcoin-gold)));
     --gradient-card: linear-gradient(135deg, hsl(var(--bitcoin-card)), hsl(var(--bitcoin-card-hover)));
-    
-    /* Shadows */
     --shadow-bitcoin: 0 10px 30px -10px hsl(var(--bitcoin-orange) / 0.3);
     --shadow-bitcoin-glow: 0 0 40px hsl(var(--bitcoin-orange) / 0.2);
     --shadow-card: 0 4px 20px hsl(var(--bitcoin-dark) / 0.4);
-
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -76,28 +53,20 @@ All colors MUST be HSL.
     /* Keep same dark theme as root for consistency */
     --background: 220 13% 6%;
     --foreground: 39 12% 95%;
-
     --card: 220 13% 8%;
     --card-foreground: 39 12% 95%;
-
     --popover: 220 13% 8%;
     --popover-foreground: 39 12% 95%;
-
     --primary: 39 100% 53%;
     --primary-foreground: 220 13% 6%;
-
     --secondary: 217 19% 12%;
     --secondary-foreground: 39 12% 95%;
-
     --muted: 217 19% 12%;
     --muted-foreground: 39 12% 75%;
-
     --accent: 43 96% 56%;
     --accent-foreground: 220 13% 6%;
-
     --destructive: 0 84% 60%;
     --destructive-foreground: 39 12% 95%;
-
     --border: 217 19% 15%;
     --input: 217 19% 15%;
     --ring: 39 100% 53%;
@@ -110,6 +79,46 @@ All colors MUST be HSL.
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
+ .light {
+    --background: 30 100% 95%; /* soft light orange background */
+    --foreground: 30 20% 10%;  /* dark orange-ish text */
+
+    --card: 30 100% 97%; 
+    --card-foreground: 30 20% 10%;
+
+    --popover: 30 100% 95%;
+    --popover-foreground: 30 20% 10%;
+
+    --primary: 30 100% 60%; 
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 30 40% 90%;
+    --secondary-foreground: 30 20% 10%;
+
+    --muted: 30 40% 90%;
+    --muted-foreground: 30 20% 40%;
+
+    --accent: 30 80% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 30 30% 85%;
+    --input: 30 30% 85%;
+    --ring: 30 100% 60%;
+
+    --sidebar-background: 30 20% 15%;
+    --sidebar-foreground: 30 20% 95%;
+    --sidebar-primary: 30 80% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 30 15% 20%;
+    --sidebar-accent-foreground: 30 20% 95%;
+    --sidebar-border: 30 15% 20%;
+    --sidebar-ring: 30 90% 60%;
+}
+
 }
 
 @layer base {
@@ -133,7 +142,7 @@ All colors MUST be HSL.
   
   .card-hover:hover {
     box-shadow: var(--shadow-bitcoin);
-    background: hsl(var(--bitcoin-card-hover));
+  
   }
   
   .gradient-bitcoin {
