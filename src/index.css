@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Bitcoin-inspired dark theme */
+    --background: 220 13% 6%;
+    --foreground: 39 12% 95%;
+
+    --card: 220 13% 8%;
+    --card-foreground: 39 12% 95%;
+
+    --popover: 220 13% 8%;
+    --popover-foreground: 39 12% 95%;
+
+    --primary: 39 100% 53%; /* Bitcoin Orange */
+    --primary-foreground: 220 13% 6%;
+
+    --secondary: 217 19% 12%;
+    --secondary-foreground: 39 12% 95%;
+
+    --muted: 217 19% 12%;
+    --muted-foreground: 39 12% 75%;
+
+    --accent: 43 96% 56%; /* Bitcoin Gold */
+    --accent-foreground: 220 13% 6%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 39 12% 95%;
+
+    --border: 217 19% 15%;
+    --input: 217 19% 15%;
+    --ring: 39 100% 53%;
+
+    --radius: 0.75rem;
+
+    /* Custom Bitcoin theme variables */
+    --bitcoin-orange: 39 100% 53%;
+    --bitcoin-gold: 43 96% 56%;
+    --bitcoin-dark: 220 13% 6%;
+    --bitcoin-card: 220 13% 8%;
+    --bitcoin-card-hover: 220 13% 12%;
+    
+    /* Gradients */
+    --gradient-bitcoin: linear-gradient(135deg, hsl(var(--bitcoin-orange)), hsl(var(--bitcoin-gold)));
+    --gradient-card: linear-gradient(135deg, hsl(var(--bitcoin-card)), hsl(var(--bitcoin-card-hover)));
+    
+    /* Shadows */
+    --shadow-bitcoin: 0 10px 30px -10px hsl(var(--bitcoin-orange) / 0.3);
+    --shadow-bitcoin-glow: 0 0 40px hsl(var(--bitcoin-orange) / 0.2);
+    --shadow-card: 0 4px 20px hsl(var(--bitcoin-dark) / 0.4);
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Keep same dark theme as root for consistency */
+    --background: 220 13% 6%;
+    --foreground: 39 12% 95%;
+
+    --card: 220 13% 8%;
+    --card-foreground: 39 12% 95%;
+
+    --popover: 220 13% 8%;
+    --popover-foreground: 39 12% 95%;
+
+    --primary: 39 100% 53%;
+    --primary-foreground: 220 13% 6%;
+
+    --secondary: 217 19% 12%;
+    --secondary-foreground: 39 12% 95%;
+
+    --muted: 217 19% 12%;
+    --muted-foreground: 39 12% 75%;
+
+    --accent: 43 96% 56%;
+    --accent-foreground: 220 13% 6%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 39 12% 95%;
+
+    --border: 217 19% 15%;
+    --input: 217 19% 15%;
+    --ring: 39 100% 53%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    background-image: radial-gradient(circle at 20% 80%, hsl(var(--bitcoin-orange) / 0.1) 0%, transparent 50%),
+                      radial-gradient(circle at 80% 20%, hsl(var(--bitcoin-gold) / 0.1) 0%, transparent 50%);
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .card-hover {
+    @apply transition-all duration-300 hover:scale-105;
+    box-shadow: var(--shadow-card);
+  }
+  
+  .card-hover:hover {
+    box-shadow: var(--shadow-bitcoin);
+    background: hsl(var(--bitcoin-card-hover));
+  }
+  
+  .gradient-bitcoin {
+    background: var(--gradient-bitcoin);
+  }
+  
+  .gradient-card {
+    background: var(--gradient-card);
+  }
+  
+  .bitcoin-glow {
+    box-shadow: var(--shadow-bitcoin-glow);
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite alternate;
+  }
+}
+
+@layer utilities {
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  @keyframes pulse-glow {
+    0% { box-shadow: 0 0 20px hsl(var(--bitcoin-orange) / 0.4); }
+    100% { box-shadow: 0 0 40px hsl(var(--bitcoin-orange) / 0.8); }
+  }
+}
