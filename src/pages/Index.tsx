@@ -41,6 +41,13 @@ const Index = () => {
       category: "Finance"
     },
     {
+      title: "Voting Dapp",
+      description: "Fund projects with cryptocurrency. Transparent, decentralized funding on Solana for innovative ideas.",
+      image: crowdfundingImage,
+      route: "/vote-app",
+      category: "Vote"
+    },
+    {
       title: "Encrypted Chat",
       description: "Secure messaging with friends. Conversations are end-to-end encrypted and managed on-chain.",
       image: chatImage,

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Shuffle, Trophy, Clock, Target } from "lucide-react";
+import { ArrowLeft, Shuffle, Trophy, Clock, Target, Gift } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,15 +15,22 @@ const PuzzleGameApp = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [gameWon, setGameWon] = useState(false);
   const [timer, setTimer] = useState(0);
+  const [claimedRewards, setClaimedRewards] = useState([]);
+  const [rewardClaimed, setRewardClaimed] = useState(false);
 
   const WINNING_STATE = [1, 2, 3, 4, 5, 6, 7, 8, null];
 
   useEffect(() => {
     initializeGame();
+    // Load claimed rewards from localStorage on initial render
+    const storedRewards = localStorage.getItem("puzzleRewards");
+    if (storedRewards) {
+      setClaimedRewards(JSON.parse(storedRewards));
+    }
   }, []);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval;
     if (gameStarted && !gameWon) {
       interval = setInterval(() => {
         setTimer(prev => prev + 1);
@@ -44,7 +51,12 @@ const PuzzleGameApp = () => {
     }
   }, [grid, moves, timer, gameStarted, toast]);
 
-  const shuffleArray = (array: (number | null)[]) => {
+  // Save claimed rewards to localStorage whenever the state changes
+  useEffect(() => {
+    localStorage.setItem("puzzleRewards", JSON.stringify(claimedRewards));
+  }, [claimedRewards]);
+
+  const shuffleArray = (array) => {
     const newArray = [...array];
     for (let i = newArray.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -53,8 +65,8 @@ const PuzzleGameApp = () => {
     return newArray;
   };
 
-  const isSolvable = (puzzle: (number | null)[]) => {
-    const flatPuzzle = puzzle.filter(x => x !== null) as number[];
+  const isSolvable = (puzzle) => {
+    const flatPuzzle = puzzle.filter(x => x !== null);
     let inversions = 0;
     
     for (let i = 0; i < flatPuzzle.length - 1; i++) {
@@ -79,11 +91,12 @@ const PuzzleGameApp = () => {
     setGameStarted(false);
     setGameWon(false);
     setTimer(0);
+    setRewardClaimed(false);
   };
 
   const getEmptyIndex = () => grid.indexOf(null);
 
-  const getValidMoves = (emptyIndex: number) => {
+  const getValidMoves = (emptyIndex) => {
     const validMoves = [];
     const row = Math.floor(emptyIndex / 3);
     const col = emptyIndex % 3;
@@ -100,7 +113,7 @@ const PuzzleGameApp = () => {
     return validMoves;
   };
 
-  const handleTileClick = (index: number) => {
+  const handleTileClick = (index) => {
     if (!gameStarted) setGameStarted(true);
     
     const emptyIndex = getEmptyIndex();
@@ -114,10 +127,26 @@ const PuzzleGameApp = () => {
     }
   };
 
-  const formatTime = (seconds: number) => {
+  const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleClaimReward = () => {
+    const newReward = {
+      id: Date.now(),
+      date: new Date().toLocaleString(),
+      moves: moves,
+      time: timer
+    };
+    setClaimedRewards(prev => [...prev, newReward]);
+    setRewardClaimed(true);
+    toast({
+      title: "Reward Claimed! 🏆",
+      description: "Your stats have been added to your history.",
+      variant: "default"
+    });
   };
 
   return (
@@ -136,7 +165,7 @@ const PuzzleGameApp = () => {
         </div>
         
         <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-bitcoin bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-red-500 to-yellow-500 bg-clip-text text-transparent">
             Sliding Puzzle
           </h1>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
@@ -212,11 +241,11 @@ const PuzzleGameApp = () => {
           </Card>
         </div>
 
-        {/* Winning Message */}
+        {/* Winning Message & Claim Button */}
         {gameWon && (
           <Card className="mb-6 border-green-500 bg-green-500/10">
             <CardContent className="p-6 text-center">
-              <Trophy className="w-12 h-12 text-bitcoin-orange mx-auto mb-4" />
+              <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold mb-2">Puzzle Solved!</h2>
               <p className="text-muted-foreground mb-4">
                 You solved the puzzle in {moves} moves and {formatTime(timer)}!
@@ -229,12 +258,21 @@ const PuzzleGameApp = () => {
                   Time: {formatTime(timer)}
                 </Badge>
               </div>
+              {!rewardClaimed && (
+                <Button 
+                  onClick={handleClaimReward} 
+                  className="mt-6 w-fit mx-auto"
+                >
+                  <Gift className="w-4 h-4 mr-2" />
+                  Claim Reward
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
 
         {/* Solution Preview */}
-        <Card>
+        <Card className="mb-8">
           <CardHeader>
             <CardTitle className="text-lg">Goal Configuration</CardTitle>
           </CardHeader>
@@ -265,6 +303,38 @@ const PuzzleGameApp = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Claimed Rewards History */}
+        <section>
+          <h2 className="text-2xl font-bold mb-4">Claimed Rewards History</h2>
+          {claimedRewards.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {claimedRewards.map((reward) => (
+                <Card key={reward.id}>
+                  <CardHeader>
+                    <CardTitle className="text-base font-semibold">
+                      Claimed on: {reward.date}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Target className="w-4 h-4 text-primary" />
+                      <span className="text-sm">Moves: {reward.moves}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-secondary" />
+                      <span className="text-sm">Time: {formatTime(reward.time)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-8">
+              No rewards claimed yet. Solve a puzzle to see your history here!
+            </p>
+          )}
+        </section>
       </main>
     </div>
   );
