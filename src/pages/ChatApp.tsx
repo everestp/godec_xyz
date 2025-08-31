@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Send, Shield, Lock, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import Navbar from "@/components/Navbar";
 
 interface Message {
   id: number;
@@ -103,9 +104,11 @@ const ChatApp = () => {
   };
 
   return (
+    <>
+    <Navbar/>
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border p-4">
-        <div className="max-w-6xl mx-auto flex items-center gap-4">
+      <header className="border-b border-border p-4 ">
+        <div className="max-w-6xl mx-auto flex items-center gap-4 mt-12">
           <Button 
             variant="ghost" 
             size="sm" 
@@ -256,6 +259,7 @@ const ChatApp = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

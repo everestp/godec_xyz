@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+
 import { ArrowLeft, Plus, Edit, Trash2, Eye, Calendar, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+
 
 interface BlogPost {
   id: number;
@@ -147,9 +148,12 @@ const BlogApp = () => {
 
   if (viewingPost) {
     return (
+     <>
+     
       <div className="min-h-screen bg-background text-foreground p-6">
+        
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-4 mb-8">
+          <div className="flex items-center gap-4 mb-8 ">
             <Button 
               variant="ghost" 
               size="sm" 
@@ -190,13 +194,16 @@ const BlogApp = () => {
           </article>
         </div>
       </div>
+     </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-6">
+    <>
+    <div className="min-h-screen bg-background text-foreground p-6 mt-10">
       <header className="max-w-6xl mx-auto mb-8">
         <div className="flex items-center gap-4 mb-6">
+          
           <Button 
             variant="ghost" 
             size="sm" 
@@ -377,6 +384,7 @@ const BlogApp = () => {
         )}
       </main>
     </div>
+    </>
   );
 };
 
