@@ -156,43 +156,67 @@ const TodoApp = () => {
                 </div>
               ) : (
                 todos.map((todo) => (
-                  <div
-                    key={todo.id}
-                    className={`flex items-center gap-3 p-4 rounded-lg border transition-all duration-300 card-hover ${
-                      todo.completed ? "bg-muted/50 border-accent/20" : "bg-card border-border/50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-center">
-                      <Checkbox
-                        checked={todo.completed}
-                        onCheckedChange={() => toggleTodo(todo.id)}
-                        className="rounded-full data-[state=checked]:bg-accent data-[state=checked]:border-accent"
-                      />
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                      <p className={`font-medium ${todo.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                        {todo.text}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Created: {todo.createdAt.toLocaleDateString()} at {todo.createdAt.toLocaleTimeString()}
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteTodo(todo.id)}
-                      className="text-destructive/80 hover:text-destructive opacity-75 hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                    <div className="w-5 h-5 flex-shrink-0">
-                      {todo.completed ? (
-                        <CheckCircle2 className="w-full h-full text-accent" />
-                      ) : (
-                        <CircleDashed className="w-full h-full text-orange-500 animate-spin-slow" />
-                      )}
-                    </div>
-                  </div>
+ <div
+  key={todo.id}
+  className={`flex items-center gap-4 p-4 rounded-lg border transition-all duration-300 hover:shadow-md hover:scale-[1.01] ${
+    todo.completed ? "bg-muted/50 border-accent/30" : "bg-card border-border/50"
+  }`}
+>
+  {/* Checkbox */}
+  <div className="flex items-center justify-center">
+    <Checkbox
+      checked={todo.completed}
+      onCheckedChange={() => toggleTodo(todo.id)}
+      className={`rounded-full w-6 h-6 transition-colors ${
+        todo.completed
+          ? "bg-accent border-accent"
+          : "border-border/50"
+      }`}
+    />
+  </div>
+
+  {/* Todo Content */}
+  <div className="flex-1 overflow-hidden">
+    <p
+      className={`font-medium text-base transition-colors ${
+        todo.completed
+          ? "line-through text-muted-foreground"
+          : "text-foreground"
+      }`}
+    >
+      {todo.text}
+    </p>
+    <p className="text-xs text-muted-foreground mt-1">
+      Created: {todo.createdAt.toLocaleDateString()} at{" "}
+      {todo.createdAt.toLocaleTimeString()}
+    </p>
+  </div>
+
+  {/* Actions */}
+  <div className="flex items-center gap-3">
+    {/* Delete Button */}
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => deleteTodo(todo.id)}
+      className="text-destructive/80 hover:text-destructive transition-colors"
+      title="Delete Todo"
+    >
+      <Trash2 className="w-5 h-5" />
+    </Button>
+
+    {/* Status Icon */}
+    <div className="w-5 h-5 flex-shrink-0">
+      {todo.completed ? (
+        <CheckCircle2 className="w-full h-full text-accent" />
+      ) : (
+        <CircleDashed className="w-full h-full text-orange-500 animate-spin-slow" />
+      )}
+    </div>
+  </div>
+</div>
+
+
                 ))
               )}
             </CardContent>
