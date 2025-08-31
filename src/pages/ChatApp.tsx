@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Send, Shield, Lock } from "lucide-react";
+import { ArrowLeft, Send, Shield, Lock, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,38 +16,33 @@ interface Message {
   isOwn: boolean;
 }
 
+interface Contact {
+  pubkey: string;
+  lastMessage: string;
+  unread: number;
+}
+
 const ChatApp = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [selectedChat, setSelectedChat] = useState<string | null>("Alice");
+  const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [newPubkey, setNewPubkey] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const contacts = [
-    { name: "Alice", lastMessage: "See you tomorrow!", online: true, unread: 2 },
-    { name: "Bob", lastMessage: "Thanks for the update", online: false, unread: 0 },
-    { name: "Charlie", lastMessage: "Great idea!", online: true, unread: 1 },
-    { name: "Diana", lastMessage: "How's the project going?", online: false, unread: 0 }
-  ];
+  const [contacts, setContacts] = useState<Contact[]>([
+    { pubkey: "F93xk...QZ12", lastMessage: "See you tomorrow!", unread: 2 },
+    { pubkey: "8DKj1...Wf99", lastMessage: "Thanks for the update", unread: 0 }
+  ]);
 
   const [messages, setMessages] = useState<Record<string, Message[]>>({
-    Alice: [
-      { id: 1, sender: "Alice", content: "Hey! How are you doing?", timestamp: "10:30 AM", isOwn: false },
-      { id: 2, sender: "You", content: "I'm good! Working on the new decentralized app", timestamp: "10:32 AM", isOwn: true },
-      { id: 3, sender: "Alice", content: "That sounds exciting! Can't wait to see it", timestamp: "10:35 AM", isOwn: false },
-      { id: 4, sender: "Alice", content: "See you tomorrow!", timestamp: "10:36 AM", isOwn: false }
+    "F93xk...QZ12": [
+      { id: 1, sender: "F93xk...QZ12", content: "Hey! How are you doing?", timestamp: "10:30 AM", isOwn: false },
+      { id: 2, sender: "You", content: "I'm good! Working on the decentralized chat app", timestamp: "10:32 AM", isOwn: true }
     ],
-    Bob: [
-      { id: 1, sender: "You", content: "Here's the latest update on the project", timestamp: "Yesterday", isOwn: true },
-      { id: 2, sender: "Bob", content: "Thanks for the update", timestamp: "Yesterday", isOwn: false }
-    ],
-    Charlie: [
-      { id: 1, sender: "Charlie", content: "What do you think about implementing a DAO?", timestamp: "2 hours ago", isOwn: false },
-      { id: 2, sender: "You", content: "That could be really useful for governance", timestamp: "2 hours ago", isOwn: true },
-      { id: 3, sender: "Charlie", content: "Great idea!", timestamp: "2 hours ago", isOwn: false }
-    ],
-    Diana: [
-      { id: 1, sender: "Diana", content: "How's the project going?", timestamp: "1 day ago", isOwn: false }
+    "8DKj1...Wf99": [
+      { id: 1, sender: "You", content: "Here’s the latest update", timestamp: "Yesterday", isOwn: true },
+      { id: 2, sender: "8DKj1...Wf99", content: "Thanks for the update", timestamp: "Yesterday", isOwn: false }
     ]
   });
 
@@ -66,22 +61,45 @@ const ChatApp = () => {
       id: Date.now(),
       sender: "You",
       content: message,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       isOwn: true
     };
 
-    setMessages(prev => ({
+    setMessages((prev) => ({
       ...prev,
       [selectedChat]: [...(prev[selectedChat] || []), newMessage]
     }));
 
+    setContacts((prev) =>
+      prev.map((c) =>
+        c.pubkey === selectedChat ? { ...c, lastMessage: message, unread: 0 } : c
+      )
+    );
+
     setMessage("");
-    
     toast({
       title: "Message Sent 🔒",
       description: "Your encrypted message has been delivered",
       variant: "default"
     });
+  };
+
+  const handleAddContact = () => {
+    if (!newPubkey.trim()) return;
+
+    const formatted = newPubkey.slice(0, 6) + "..." + newPubkey.slice(-4);
+
+    if (!contacts.find((c) => c.pubkey === formatted)) {
+      setContacts((prev) => [
+        ...prev,
+        { pubkey: formatted, lastMessage: "New chat started", unread: 0 }
+      ]);
+      setMessages((prev) => ({
+        ...prev,
+        [formatted]: []
+      }));
+    }
+    setNewPubkey("");
   };
 
   return (
@@ -100,9 +118,9 @@ const ChatApp = () => {
           
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary" />
-            <h1 className="text-xl font-bold">Secure Chat</h1>
+            <h1 className="text-xl font-bold">Decentralized Chat</h1>
             <Badge variant="secondary" className="text-xs">
-              End-to-End Encrypted
+              Public Key Based
             </Badge>
           </div>
         </div>
@@ -110,34 +128,42 @@ const ChatApp = () => {
 
       <div className="max-w-6xl mx-auto h-[calc(100vh-80px)] flex">
         {/* Contacts Sidebar */}
-        <div className="w-80 border-r border-border bg-card">
+        <div className="w-80 border-r border-border bg-card flex flex-col">
           <div className="p-4 border-b border-border">
-            <h2 className="font-semibold text-lg">Contacts</h2>
-            <p className="text-muted-foreground text-sm">End-to-end encrypted chats</p>
+            <h2 className="font-semibold text-lg">Chats</h2>
+            <p className="text-muted-foreground text-sm">All identified by wallet addresses</p>
+          </div>
+
+          {/* Add Contact by Public Key */}
+          <div className="p-3 flex gap-2 border-b border-border">
+            <Input
+              value={newPubkey}
+              onChange={(e) => setNewPubkey(e.target.value)}
+              placeholder="Enter wallet address..."
+              className="flex-1 text-sm"
+            />
+            <Button size="sm" onClick={handleAddContact}>
+              <Plus className="w-4 h-4" />
+            </Button>
           </div>
           
-          <div className="overflow-y-auto">
+          <div className="overflow-y-auto flex-1">
             {contacts.map((contact) => (
               <div
-                key={contact.name}
-                onClick={() => setSelectedChat(contact.name)}
+                key={contact.pubkey}
+                onClick={() => setSelectedChat(contact.pubkey)}
                 className={`p-4 cursor-pointer hover:bg-muted/50 border-b border-border/50 transition-colors ${
-                  selectedChat === contact.name ? "bg-muted" : ""
+                  selectedChat === contact.pubkey ? "bg-muted" : ""
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <Avatar>
-                      <AvatarFallback>{contact.name[0]}</AvatarFallback>
-                    </Avatar>
-                    {contact.online && (
-                      <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-card" />
-                    )}
-                  </div>
+                  <Avatar>
+                    <AvatarFallback>{contact.pubkey[0]}</AvatarFallback>
+                  </Avatar>
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
-                      <h3 className="font-medium truncate">{contact.name}</h3>
+                      <h3 className="font-medium truncate">{contact.pubkey}</h3>
                       {contact.unread > 0 && (
                         <Badge variant="default" className="text-xs">
                           {contact.unread}
@@ -167,7 +193,7 @@ const ChatApp = () => {
                   <h3 className="font-medium">{selectedChat}</h3>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Lock className="w-3 h-3" />
-                    Messages are end-to-end encrypted
+                    Messages stored on-chain
                   </div>
                 </div>
               </div>
@@ -187,9 +213,13 @@ const ChatApp = () => {
                       }`}
                     >
                       <p>{msg.content}</p>
-                      <p className={`text-xs mt-1 ${
-                        msg.isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
-                      }`}>
+                      <p
+                        className={`text-xs mt-1 ${
+                          msg.isOwn
+                            ? "text-primary-foreground/70"
+                            : "text-muted-foreground"
+                        }`}
+                      >
                         {msg.timestamp}
                       </p>
                     </div>
@@ -204,7 +234,7 @@ const ChatApp = () => {
                   <Input
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Type your encrypted message..."
+                    placeholder="Type your message..."
                     onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
                     className="flex-1"
                   />
@@ -218,8 +248,8 @@ const ChatApp = () => {
             <div className="flex-1 flex items-center justify-center text-muted-foreground">
               <div className="text-center">
                 <Shield className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Select a contact to start chatting</p>
-                <p className="text-sm">All messages are end-to-end encrypted</p>
+                <p>Select a public key to start chatting</p>
+                <p className="text-sm">All chats are decentralized</p>
               </div>
             </div>
           )}

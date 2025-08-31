@@ -14,38 +14,29 @@ interface BlogPost {
   content: string;
   author: string;
   date: string;
-  tags: string[];
-  excerpt: string;
-  image_url:string;
-  reading_time:string
+  image_url: string;
 }
 
 const BlogApp = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-const [posts, setPosts] = useState<BlogPost[]>([
+  const [posts, setPosts] = useState<BlogPost[]>([
     {
       id: 1,
       title: "The Art of Writing Clean Code",
       content: "Writing clean, maintainable code isn't just a best practice—it's a mindset. It involves structuring your code in a way that is easy for others (and your future self) to understand and modify. We'll explore principles like the **DRY (Don't Repeat Yourself)** principle, the importance of meaningful variable names, and how to refactor your code incrementally. A well-written codebase is like a clear instruction manual, making collaboration and debugging much smoother.",
       author: "Alice Smith",
       date: "2024-03-20",
-      tags: ["programming", "best practices", "software development"],
-      excerpt: "Master the principles of writing clean, maintainable, and readable code.",
-      image_url: "https://example.com/images/clean-code.jpg",
-      reading_time: "5 min read"
+      image_url: "https://images.unsplash.com/photo-1743601570341-7844e7862d29?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxmZWF0dXJlZC1waG90b3MtZmVlZHwxOHx8fGVufDB8fHx8fA%3D%3D",
     },
     {
       id: 2,
-      title: "Introduction to Machine Learning with Python",
-      content: "Machine learning has moved from a niche academic field to a powerful tool accessible to every developer. This post will guide you through the basics of building your first machine learning model using Python's scikit-learn library. We'll cover supervised vs. unsupervised learning, the key stages of a machine learning project—data preprocessing, model training, and evaluation—and a simple example using a linear regression model to predict housing prices. Get ready to dive into the world of data science!",
+      title: "A Comprehensive Guide to Modern JavaScript Frameworks",
+      content: "The JavaScript ecosystem is constantly evolving, with new frameworks and libraries emerging. This guide provides a detailed comparison of the most popular ones: React, Angular, and Vue.js. We'll cover their core philosophies, typical use cases, performance considerations, and community support. By the end, you'll have a clear understanding of which framework is the best fit for your next project, whether you're building a complex single-page application or a simple interactive website.",
       author: "Bob Johnson",
       date: "2024-03-18",
-      tags: ["machine learning", "python", "data science", "tutorial"],
-      excerpt: "A beginner's guide to the fundamentals of machine learning using Python.",
-      image_url: "https://example.com/images/ml-python.jpg",
-      reading_time: "8 min read"
+      image_url: "https://images.unsplash.com/photo-1629858341517-8e69ac81e05d?q=80&w=2670&auto=format&fit=crop",
     },
     {
       id: 3,
@@ -53,10 +44,7 @@ const [posts, setPosts] = useState<BlogPost[]>([
       content: "Serverless computing allows developers to build and run applications without managing servers. This paradigm shifts the focus from infrastructure management to writing business logic. We'll discuss the core concepts of serverless functions (like AWS Lambda or Azure Functions), the benefits like cost savings and automatic scaling, and common use cases such as building APIs, handling real-time data processing, and creating microservices. Learn how serverless can accelerate your development process and reduce operational overhead.",
       author: "Charlie Brown",
       date: "2024-03-15",
-      tags: ["cloud computing", "serverless", "aws", "architecture"],
-      excerpt: "Dive into serverless computing and its benefits for modern application development.",
-      image_url: "https://example.com/images/serverless.jpg",
-      reading_time: "6 min read"
+      image_url: "https://images.unsplash.com/photo-1629858341517-8e69ac81e05d?q=80&w=2670&auto=format&fit=crop",
     },
     {
       id: 4,
@@ -64,10 +52,7 @@ const [posts, setPosts] = useState<BlogPost[]>([
       content: "Great UX design is about more than just aesthetics; it's about understanding human behavior. This article delves into the psychological principles that underpin effective design. We'll explore concepts like **Hick's Law**, which states that the time it takes to make a decision increases with the number of choices, and the **F-shaped pattern**, which describes how users typically scan web content. By applying these principles, you can create interfaces that are intuitive, efficient, and enjoyable for your users.",
       author: "Diana Prince",
       date: "2024-03-12",
-      tags: ["ux design", "psychology", "web design"],
-      excerpt: "How psychology can help you create more intuitive and engaging user experiences.",
-      image_url: "https://example.com/images/ux-psychology.jpg",
-      reading_time: "7 min read"
+      image_url: "https://images.unsplash.com/photo-1549488344-9357609a632e?q=80&w=2670&auto=format&fit=crop",
     },
     {
       id: 5,
@@ -75,10 +60,7 @@ const [posts, setPosts] = useState<BlogPost[]>([
       content: "GraphQL is a query language for your API and a server-side runtime for executing those queries. Unlike traditional REST APIs, where you often have to make multiple requests or receive excessive data, GraphQL allows clients to request exactly the data they need. This post will introduce you to the core concepts of GraphQL, including queries, mutations, and schemas. We'll also provide a simple example of how to set up a basic GraphQL server and client, demonstrating its power in creating more efficient and flexible APIs.",
       author: "Ethan Hunt",
       date: "2024-03-10",
-      tags: ["api", "graphql", "backend", "development"],
-      excerpt: "Discover the benefits of GraphQL for building efficient and flexible APIs.",
-      image_url: "https://example.com/images/graphql.jpg",
-      reading_time: "9 min read"
+      image_url: "https://images.unsplash.com/photo-1639736144823-380d19d5543c?q=80&w=2670&auto=format&fit=crop",
     }
   ]);
 
@@ -88,7 +70,7 @@ const [posts, setPosts] = useState<BlogPost[]>([
   const [newPost, setNewPost] = useState({
     title: "",
     content: "",
-    tags: ""
+    image_url: ""
   });
 
   const handleCreatePost = () => {
@@ -107,12 +89,11 @@ const [posts, setPosts] = useState<BlogPost[]>([
       content: newPost.content,
       author: "You",
       date: new Date().toISOString().split('T')[0],
-      tags: newPost.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-      excerpt: newPost.content.substring(0, 100) + "..."
+      image_url: newPost.image_url,
     };
 
     setPosts(prev => [post, ...prev]);
-    setNewPost({ title: "", content: "", tags: "" });
+    setNewPost({ title: "", content: "", image_url: "" });
     setIsCreating(false);
     
     toast({
@@ -127,6 +108,31 @@ const [posts, setPosts] = useState<BlogPost[]>([
     toast({
       title: "Post Deleted",
       description: "The blog post has been removed",
+      variant: "default"
+    });
+  };
+
+  const handleEditPost = (post: BlogPost) => {
+    setEditingPost(post);
+  };
+
+  const handleUpdatePost = () => {
+    if (!editingPost?.title.trim() || !editingPost?.content.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide both title and content for your post",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setPosts(prev => 
+      prev.map(p => p.id === editingPost.id ? editingPost : p)
+    );
+    setEditingPost(null);
+    toast({
+      title: "Post Updated! ✨",
+      description: "Your blog post has been updated successfully",
       variant: "default"
     });
   };
@@ -154,7 +160,6 @@ const [posts, setPosts] = useState<BlogPost[]>([
               Back to Blog
             </Button>
           </div>
-
           <article>
             <header className="mb-8">
               <h1 className="text-4xl font-bold mb-4">{viewingPost.title}</h1>
@@ -168,15 +173,15 @@ const [posts, setPosts] = useState<BlogPost[]>([
                   {formatDate(viewingPost.date)}
                 </div>
               </div>
-              <div className="flex gap-2">
-                {viewingPost.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
+              <div className="flex gap-2"></div>
             </header>
-            
+            {viewingPost.image_url && (
+              <img 
+                src={viewingPost.image_url} 
+                alt={viewingPost.title} 
+                className="w-full h-auto mb-8 rounded-lg shadow-md object-cover" 
+              />
+            )}
             <div className="prose prose-lg max-w-none">
               <p className="text-lg leading-relaxed whitespace-pre-wrap">
                 {viewingPost.content}
@@ -202,7 +207,6 @@ const [posts, setPosts] = useState<BlogPost[]>([
             Back to Home
           </Button>
         </div>
-        
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-4xl font-bold mb-4 bg-gradient-bitcoin bg-clip-text text-transparent">
@@ -212,7 +216,6 @@ const [posts, setPosts] = useState<BlogPost[]>([
               Share your thoughts on decentralization, privacy, and the future of technology.
             </p>
           </div>
-          
           <Button 
             onClick={() => setIsCreating(true)}
             size="lg"
@@ -223,7 +226,6 @@ const [posts, setPosts] = useState<BlogPost[]>([
           </Button>
         </div>
       </header>
-
       <main className="max-w-6xl mx-auto">
         {isCreating && (
           <Card className="mb-8">
@@ -236,20 +238,17 @@ const [posts, setPosts] = useState<BlogPost[]>([
                 value={newPost.title}
                 onChange={(e) => setNewPost(prev => ({ ...prev, title: e.target.value }))}
               />
-              
               <Textarea
                 placeholder="Write your blog post content here..."
                 value={newPost.content}
                 onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
                 rows={10}
               />
-              
               <Input
-                placeholder="Tags (comma separated)"
-                value={newPost.tags}
-                onChange={(e) => setNewPost(prev => ({ ...prev, tags: e.target.value }))}
+                placeholder="Image Url (Optional)"
+                value={newPost.image_url}
+                onChange={(e) => setNewPost(prev => ({ ...prev, image_url: e.target.value }))}
               />
-              
               <div className="flex gap-3">
                 <Button onClick={handleCreatePost}>
                   Publish Post
@@ -261,13 +260,47 @@ const [posts, setPosts] = useState<BlogPost[]>([
             </CardContent>
           </Card>
         )}
-
+        {editingPost && (
+          <Card className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-6">
+            <Card className="w-full max-w-2xl">
+              <CardHeader>
+                <CardTitle>Edit Post</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Input
+                  placeholder="Post Title"
+                  value={editingPost.title}
+                  onChange={(e) => setEditingPost(prev => prev ? { ...prev, title: e.target.value } : null)}
+                />
+                <Textarea
+                  placeholder="Write your blog post content here..."
+                  value={editingPost.content}
+                  onChange={(e) => setEditingPost(prev => prev ? { ...prev, content: e.target.value } : null)}
+                  rows={10}
+                />
+                <Input
+                  placeholder="Image Url (Optional)"
+                  value={editingPost.image_url}
+                  onChange={(e) => setEditingPost(prev => prev ? { ...prev, image_url: e.target.value } : null)}
+                />
+                <div className="flex gap-3">
+                  <Button onClick={handleUpdatePost}>
+                    Save Changes
+                  </Button>
+                  <Button variant="outline" onClick={() => setEditingPost(null)}>
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </Card>
+        )}
         <div className="grid gap-6">
           {posts.map((post) => (
             <Card key={post.id} className="card-hover">
               <CardHeader>
                 <div className="flex justify-between items-start">
-                  <div className="flex-1">
+                  <div className="flex-1" onClick={() => setViewingPost(post)}>
                     <CardTitle className="text-xl mb-2">{post.title}</CardTitle>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
                       <div className="flex items-center gap-1">
@@ -279,15 +312,7 @@ const [posts, setPosts] = useState<BlogPost[]>([
                         {formatDate(post.date)}
                       </div>
                     </div>
-                    <div className="flex gap-2 mb-3">
-                      {post.tags.map((tag) => (
-                        <Badge key={tag} variant="outline">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
                   </div>
-                  
                   <div className="flex gap-2">
                     <Button 
                       variant="ghost" 
@@ -298,7 +323,11 @@ const [posts, setPosts] = useState<BlogPost[]>([
                     </Button>
                     {post.author === "You" && (
                       <>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleEditPost(post)}
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button 
@@ -313,12 +342,14 @@ const [posts, setPosts] = useState<BlogPost[]>([
                   </div>
                 </div>
               </CardHeader>
-              
               <CardContent>
-                <p className="text-muted-foreground leading-relaxed">
-                  {post.excerpt}
-                </p>
-                
+                {post.image_url && (
+                  <img 
+                    src={post.image_url} 
+                    alt={post.title} 
+                    className="w-full h-48 object-cover rounded-md mb-4" 
+                  />
+                )}
                 <Button 
                   variant="link" 
                   className="p-0 h-auto mt-3"
@@ -330,7 +361,6 @@ const [posts, setPosts] = useState<BlogPost[]>([
             </Card>
           ))}
         </div>
-
         {posts.length === 0 && (
           <Card className="text-center p-12">
             <CardContent>
