@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Sun, Moon, Wallet } from "lucide-react"; // Optional: Swap for your icon set
-
+import { Sun, Moon, Wallet, Wallet2 } from "lucide-react"; // Optional: Swap for your icon set
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import'@solana/wallet-adapter-react-ui/styles.css'
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -69,15 +70,11 @@ const Navbar = () => {
             </button>
 
             {/* Connect Wallet */}
-            <button
-              onClick={handleWalletConnect}
-              className="flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-medium py-2 px-4 rounded-full transition-all duration-300 hover:scale-105 shadow"
-            >
-              <Wallet className="w-4 h-4" />
-              Connect Wallet
-            </button>
-          </div>
 
+           
+          
+<WalletMultiButton style={{background :'orange', color:"white" }} />
+          </div>
           {/* Hamburger for mobile */}
           <div className="sm:hidden">
             <button
@@ -132,14 +129,7 @@ const Navbar = () => {
                 )}
               </button>
             </div>
-
-            <button
-              onClick={handleWalletConnect}
-              className="w-full mt-3 flex items-center justify-center gap-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-medium py-2 px-4 rounded-full hover:scale-105 transition-all shadow"
-            >
-              <Wallet className="w-4 h-4" />
-              Connect Wallet
-            </button>
+<WalletMultiButton style={{background :'orange', color:"white" }} />
           </div>
         </div>
       )}

@@ -13,7 +13,7 @@ import { NestedRoot } from "vaul";
 import { clusterApiUrl } from "@solana/web3.js";
 import'@solana/wallet-adapter-react-ui/styles.css'
 
-const AppWalletProvider = ({children}:{children:React.ReactNode}) => {
+ const AppWalletProvider = ({children}:{children:React.ReactNode}) => {
   const network = WalletAdapterNetwork.Devnet;
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
   const wallets = useMemo(

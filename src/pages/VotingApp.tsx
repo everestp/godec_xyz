@@ -12,17 +12,38 @@ import { ArrowLeft, Vote, Plus, Clock, Users, BarChart3, Eye, CheckCircle } from
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
-interface Poll {
-  id: number;
-  title: string;
-  description: string;
-  options: string[];
-  votes: number[];
-  deadline: Date;
-  isActive: boolean;
-  totalVotes: number;
-  creator: string;
-  votedBy: string[];
+
+export  interface Candidate {
+publicKey :string,
+cid:number,
+pollId:string,
+name:string,
+votes:string,
+hasRegistered:string
+
+}
+
+
+export  interface Poll {
+publicKey :string,
+cid:number,
+desciption:string,
+start:number, //Unix timestamp
+end:string ,   //Unix timestamp
+candidates:number
+}
+
+
+export interface GlobalState {
+  state: Candidate;
+  poll:Poll | null,
+  candidates :Candidate[],
+  voters: any[],
+  regModal:string
+}
+
+export interface RootState {
+  globalStates:GlobalState
 }
 
 // Main App component

@@ -16,6 +16,7 @@ import blogImage from "@/assets/blog-card.jpg";
 import lotteryImage from "@/assets/lottery-card.jpg";
 import {  useNavigate } from "react-router";
 import { Link } from "react-router-dom";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
 const Index = () => {
   const apps = [
@@ -144,10 +145,7 @@ const navigate = useNavigate()
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-              <Button size="lg" className="px-8 py-6 text-lg bitcoin-glow">
-                <Brain className="w-5 h-5 mr-2" />
-                Connect Wallet
-              </Button>
+            <WalletMultiButton style={{background :'orange', color:"white" }} />
               <Link to={"/learn-more"}>
               <Button variant="outline" size="lg" className="px-8 py-6 text-lg" >
                 Learn More
