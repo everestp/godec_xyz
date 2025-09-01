@@ -135,7 +135,7 @@ const navigate = useNavigate()
             </Badge>
             
             <h1 className="text-5xl md:text-7xl font-bold mb-6 gradient-bitcoin bg-clip-text text-transparent">
-              godec.fun
+              godec.xyz
             </h1>
             
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 leading-relaxed">
@@ -219,7 +219,7 @@ const navigate = useNavigate()
           </div>
           
           <div className="mt-12 pt-8 border-t border-border/30 text-center text-sm text-muted-foreground">
-            <p>© {new Date().getFullYear()} godec.fun - Empowering decentralization, one app at a time.</p>
+            <p>© {new Date().getFullYear()} godec.xyz - Empowering decentralization, one app at a time.</p>
           </div>
         </div>
       </footer>

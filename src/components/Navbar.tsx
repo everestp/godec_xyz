@@ -52,7 +52,7 @@ const Navbar = () => {
       GoDec
     </span>
     <span className="text-xl font-bold bg-gradient-to-r from-orange-500 to-yellow-400 bg-clip-text text-transparent">
-      .fun
+      .xyz
     </span>
   </a>
 </div>

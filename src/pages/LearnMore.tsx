@@ -40,7 +40,7 @@ const LearnMore = () => {
         <section className="text-center mb-16">
           <h2 className="text-4xl font-bold mb-4">The Vision: <span className="text-primary">Go Decentralized</span></h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            The core objective of godec.fun is to make the power of decentralized applications accessible to everyone. The name **"GoDec"** stands for **"Go Decentralized,"** representing our mission to build simple, everyday tools on a decentralized network. We believe that users should have complete ownership and control over their data, free from censorship and central authorities.
+            The core objective of godec.xyz is to make the power of decentralized applications accessible to everyone. The name **"GoDec"** stands for **"Go Decentralized,"** representing our mission to build simple, everyday tools on a decentralized network. We believe that users should have complete ownership and control over their data, free from censorship and central authorities.
           </p>
         </section>
 
@@ -121,7 +121,7 @@ const LearnMore = () => {
               </div>
               <div className="text-center md:text-left">
                 <h3 className="text-2xl font-bold">Everest Paudel</h3>
-                <p className="text-md text-muted-foreground mb-4">Creator of godec.fun</p>
+                <p className="text-md text-muted-foreground mb-4">Creator of godec.xyz</p>
                 <p className="text-sm text-muted-foreground mb-4">
     Everest Paudel is a passionate software developer specializing in decentralized applications (dApps) and infrastructure automation. With a focus on the Solana ecosystem, I build performant, user-friendly, and privacy-focused tools that push the boundaries of Web3 and cloud computing.
 </p>
@@ -159,7 +159,7 @@ const LearnMore = () => {
           </div>
           
           <div className="mt-12 pt-8 border-t border-border/30 text-center text-sm text-muted-foreground">
-            <p>© {new Date().getFullYear()} godec.fun - Empowering decentralization, one app at a time.</p>
+            <p>© {new Date().getFullYear()} godec.xyz - Empowering decentralization, one app at a time.</p>
           </div>
         </div>
       </footer>
