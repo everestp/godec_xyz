@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,9 +25,11 @@ interface Poll {
   votedBy: string[];
 }
 
+// Main App component
 const VotingApp = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  // State to manage the currently selected poll for the full page view
   const [selectedPoll, setSelectedPoll] = useState<Poll | null>(null);
   const [userWallet] = useState("0x1234...5678"); // Mock wallet address
   const [filter, setFilter] = useState<"all" | "active" | "ended">("all");
@@ -181,12 +183,17 @@ const VotingApp = () => {
       if (p.id === pollId) {
         const newVotes = [...p.votes];
         newVotes[optionIndex]++;
-        return {
+        const updatedPoll = {
           ...p,
           votes: newVotes,
           totalVotes: p.totalVotes + 1,
           votedBy: [...p.votedBy, userWallet]
         };
+        // Update the selected poll if it's the one being voted on
+        if (selectedPoll && selectedPoll.id === pollId) {
+          setSelectedPoll(updatedPoll);
+        }
+        return updatedPoll;
       }
       return p;
     }));
@@ -195,21 +202,6 @@ const VotingApp = () => {
       title: "Vote Recorded! ✅",
       description: "Your vote has been successfully recorded",
     });
-
-    // Update selected poll if it's the same one
-    if (selectedPoll && selectedPoll.id === pollId) {
-      const updatedPoll = polls.find(p => p.id === pollId);
-      if (updatedPoll) {
-        const newVotes = [...updatedPoll.votes];
-        newVotes[optionIndex]++;
-        setSelectedPoll({
-          ...updatedPoll,
-          votes: newVotes,
-          totalVotes: updatedPoll.totalVotes + 1,
-          votedBy: [...updatedPoll.votedBy, userWallet]
-        });
-      }
-    }
   };
 
   const getTimeLeft = (deadline: Date) => {
@@ -232,6 +224,112 @@ const VotingApp = () => {
     return { option: poll.options[winningIndex], votes: maxVotes };
   };
 
+  // Conditional rendering for the single poll view or the main list view
+  if (selectedPoll) {
+    return (
+      <div className="min-h-screen bg-background text-foreground p-6">
+        <header className="max-w-6xl mx-auto mb-8">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setSelectedPoll(null)}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Polls
+          </Button>
+        </header>
+
+        <main className="max-w-3xl mx-auto">
+          <Card className="rounded-2xl shadow-lg border-2 border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3">
+                {selectedPoll.title}
+                <Badge variant={selectedPoll.isActive ? "default" : "secondary"}>
+                  {selectedPoll.isActive ? "Active" : "Ended"}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            
+            <CardContent className="space-y-6">
+              <p className="text-muted-foreground">{selectedPoll.description}</p>
+              
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-center gap-1">
+                    <Users className="w-4 h-4 text-primary" />
+                    <span className="text-lg font-semibold">{selectedPoll.totalVotes}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Total Votes</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="flex items-center justify-center gap-1">
+                    <BarChart3 className="w-4 h-4 text-accent" />
+                    <span className="text-lg font-semibold">{selectedPoll.options.length}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Options</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="flex items-center justify-center gap-1">
+                    <Clock className="w-4 h-4 text-secondary" />
+                    <span className="text-lg font-semibold">{getTimeLeft(selectedPoll.deadline)}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Time Left</p>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h4 className="font-semibold">Poll Results</h4>
+                {selectedPoll.options.map((option, index) => {
+                  const percentage = selectedPoll.totalVotes > 0 ? (selectedPoll.votes[index] / selectedPoll.totalVotes) * 100 : 0;
+                  const isWinning = !selectedPoll.isActive && getWinningOption(selectedPoll)?.option === option;
+                  
+                  return (
+                    <div key={index} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className={`font-medium ${isWinning ? 'text-accent' : ''}`}>
+                          {option} {isWinning && '🏆'}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {selectedPoll.votes[index]} votes ({percentage.toFixed(1)}%)
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Progress value={percentage} className="flex-1" />
+                        {selectedPoll.isActive && !selectedPoll.votedBy.includes(userWallet) && (
+                          <Button
+                            size="sm"
+                            onClick={() => vote(selectedPoll.id, index)}
+                          >
+                            Vote
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {selectedPoll.votedBy.includes(userWallet) && (
+                <div className="bg-accent/10 p-3 rounded-lg">
+                  <div className="flex items-center gap-2 text-accent">
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="text-sm font-medium">You have voted on this poll</span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  // Main list view
   return (
     <div className="min-h-screen bg-background text-foreground p-6">
       <header className="max-w-6xl mx-auto mb-8">
@@ -248,7 +346,7 @@ const VotingApp = () => {
         </div>
         
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-bitcoin bg-clip-text text-transparent">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2 sm:mb-4 bg-gradient-bitcoin bg-clip-text text-transparent">
             Decentralized Voting
           </h1>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
@@ -361,185 +459,86 @@ const VotingApp = () => {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto">
-        <div className="grid gap-6">
-          {filteredPolls.map((poll) => (
-            <Card key={poll.id} className="card-hover">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <CardTitle className="text-xl">{poll.title}</CardTitle>
-                      <Badge variant={poll.isActive ? "default" : "secondary"}>
-                        {poll.isActive ? "Active" : "Ended"}
-                      </Badge>
-                    </div>
-                    <p className="text-muted-foreground mb-3">{poll.description}</p>
-                    
-                    <div className="flex items-center gap-6 text-sm">
-                      <div className="flex items-center gap-1">
-                        <Users className="w-4 h-4 text-primary" />
-                        <span>{poll.totalVotes} votes</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4 text-secondary" />
-                        <span>{getTimeLeft(poll.deadline)}</span>
-                      </div>
-                      {poll.votedBy.includes(userWallet) && (
-                        <div className="flex items-center gap-1 text-accent">
-                          <CheckCircle className="w-4 h-4" />
-                          <span>Voted</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedPoll(poll)}
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    View Details
-                  </Button>
-                </div>
-              </CardHeader>
+<main className="max-w-6xl mx-auto mt-10">
+  <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+    {filteredPolls.map((poll) => {
+      const statusBadge = poll.isActive
+        ? { variant: "default", text: "Active" }
+        : { variant: "secondary", text: "Ended" };
 
-              <CardContent>
-                <div className="space-y-4">
-                  {poll.options.map((option, index) => {
-                    const percentage = poll.totalVotes > 0 ? (poll.votes[index] / poll.totalVotes) * 100 : 0;
-                    const isWinning = !poll.isActive && getWinningOption(poll)?.option === option;
-                    
-                    return (
-                      <div key={index} className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className={`font-medium ${isWinning ? 'text-accent' : ''}`}>
-                            {option}
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            {poll.votes[index]} votes ({percentage.toFixed(1)}%)
-                          </span>
-                        </div>
-                        <div className="flex gap-2">
-                          <Progress value={percentage} className="flex-1" />
-                          {poll.isActive && !poll.votedBy.includes(userWallet) && (
-                            <Button
-                              size="sm"
-                              onClick={() => vote(poll.id, index)}
-                            >
-                              Vote
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {filteredPolls.length === 0 && (
-          <div className="text-center py-12">
-            <Vote className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No polls found</h3>
-            <p className="text-muted-foreground">
-              {filter === "all" ? "No polls have been created yet." : `No ${filter} polls available.`}
-            </p>
-          </div>
-        )}
-      </main>
-
-      {/* Poll Details Modal */}
-      {selectedPoll && (
-        <Dialog open={!!selectedPoll} onOpenChange={() => setSelectedPoll(null)}>
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-3">
-                {selectedPoll.title}
-                <Badge variant={selectedPoll.isActive ? "default" : "secondary"}>
-                  {selectedPoll.isActive ? "Active" : "Ended"}
-                </Badge>
-              </DialogTitle>
-            </DialogHeader>
-            
-            <div className="space-y-6">
-              <p className="text-muted-foreground">{selectedPoll.description}</p>
-              
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-center gap-1">
-                    <Users className="w-4 h-4 text-primary" />
-                    <span className="text-lg font-semibold">{selectedPoll.totalVotes}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Total Votes</p>
-                </div>
-                
-                <div className="space-y-1">
-                  <div className="flex items-center justify-center gap-1">
-                    <BarChart3 className="w-4 h-4 text-accent" />
-                    <span className="text-lg font-semibold">{selectedPoll.options.length}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Options</p>
-                </div>
-                
-                <div className="space-y-1">
-                  <div className="flex items-center justify-center gap-1">
-                    <Clock className="w-4 h-4 text-secondary" />
-                    <span className="text-lg font-semibold">{getTimeLeft(selectedPoll.deadline)}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Time Left</p>
-                </div>
+      return (
+        <Card key={poll.id} className="card-hover">
+          <CardHeader>
+            <div className="flex flex-col items-start gap-2">
+              <div className="flex flex-wrap items-center gap-3 mb-2">
+                <CardTitle className="text-xl">{poll.title}</CardTitle>
+                <Badge variant={statusBadge.variant}>{statusBadge.text}</Badge>
               </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h4 className="font-semibold">Poll Results</h4>
-                {selectedPoll.options.map((option, index) => {
-                  const percentage = selectedPoll.totalVotes > 0 ? (selectedPoll.votes[index] / selectedPoll.totalVotes) * 100 : 0;
-                  const isWinning = !selectedPoll.isActive && getWinningOption(selectedPoll)?.option === option;
-                  
-                  return (
-                    <div key={index} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className={`font-medium ${isWinning ? 'text-accent' : ''}`}>
-                          {option} {isWinning && '🏆'}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {selectedPoll.votes[index]} votes ({percentage.toFixed(1)}%)
-                        </span>
-                      </div>
-                      <div className="flex gap-2">
-                        <Progress value={percentage} className="flex-1" />
-                        {selectedPoll.isActive && !selectedPoll.votedBy.includes(userWallet) && (
-                          <Button
-                            size="sm"
-                            onClick={() => vote(selectedPoll.id, index)}
-                          >
-                            Vote
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {selectedPoll.votedBy.includes(userWallet) && (
-                <div className="bg-accent/10 p-3 rounded-lg">
-                  <div className="flex items-center gap-2 text-accent">
-                    <CheckCircle className="w-4 h-4" />
-                    <span className="text-sm font-medium">You have voted on this poll</span>
-                  </div>
-                </div>
-              )}
+              <p className="text-muted-foreground line-clamp-2">{poll.description}</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Created by {poll.creator}
+              </p>
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
+          </CardHeader>
+
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="space-y-1">
+                <div className="flex items-center justify-center gap-1">
+                  <Users className="w-4 h-4 text-primary" />
+                  <span className="text-lg font-semibold">{poll.totalVotes}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Total Votes</p>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-center gap-1">
+                  <BarChart3 className="w-4 h-4 text-accent" />
+                  <span className="text-lg font-semibold">{poll.options.length}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Options</p>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-center gap-1">
+                  <Clock className="w-4 h-4 text-secondary" />
+                  <span className="text-lg font-semibold">{getTimeLeft(poll.deadline)}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {poll.deadline > new Date() ? "Time Left" : "Ended"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-center mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedPoll(poll)}
+                className="w-full"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                View Details
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    })}
+  </div>
+
+  {filteredPolls.length === 0 && (
+    <div className="text-center py-12">
+      <Vote className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+      <h3 className="text-lg font-semibold mb-2">No polls found</h3>
+      <p className="text-muted-foreground">
+        {filter === "all" ? "No polls have been created yet." : `No ${filter} polls available.`}
+      </p>
+    </div>
+  )}
+</main>
+
+
     </div>
   );
 };
