@@ -5,9 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Send, Shield, Lock, Plus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import Navbar from "@/components/Navbar";
 
 interface Message {
   id: number;
@@ -24,7 +22,7 @@ interface Contact {
 }
 
 const ChatApp = () => {
-  const navigate = useNavigate();
+  // NOTE: Assuming useToast is provided by the environment
   const { toast } = useToast();
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -104,21 +102,22 @@ const ChatApp = () => {
   };
 
   return (
-    <>
-    <Navbar/>
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       <header className="border-b border-border p-4 ">
         <div className="max-w-6xl mx-auto flex items-center gap-4 mt-12">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => navigate("/")}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Home
-          </Button>
-          
+          {/* Back button for mobile view when a chat is selected */}
+          {selectedChat && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedChat(null)}
+              className="flex items-center gap-2 md:hidden"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+          )}
+
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary" />
             <h1 className="text-xl font-bold">Decentralized Chat</h1>
@@ -129,9 +128,9 @@ const ChatApp = () => {
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto h-[calc(100vh-80px)] flex">
+      <div className="max-w-6xl mx-auto flex-1 w-full flex overflow-hidden">
         {/* Contacts Sidebar */}
-        <div className="w-80 border-r border-border bg-card flex flex-col">
+        <div className={`w-full md:w-80 border-r border-border bg-card flex-shrink-0 flex-grow-0 flex flex-col ${selectedChat ? 'hidden md:flex' : ''}`}>
           <div className="p-4 border-b border-border">
             <h2 className="font-semibold text-lg">Chats</h2>
             <p className="text-muted-foreground text-sm">All identified by wallet addresses</p>
@@ -184,11 +183,11 @@ const ChatApp = () => {
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col">
+        <div className={`flex-1 flex flex-col ${selectedChat ? '' : 'hidden md:flex'}`}>
           {selectedChat ? (
             <>
               {/* Chat Header */}
-              <div className="p-4 border-b border-border bg-card flex items-center gap-3">
+              <div className="p-4 border-b border-border bg-card flex items-center gap-3 flex-shrink-0">
                 <Avatar>
                   <AvatarFallback>{selectedChat[0]}</AvatarFallback>
                 </Avatar>
@@ -232,7 +231,7 @@ const ChatApp = () => {
               </div>
 
               {/* Message Input */}
-              <div className="p-4 border-t border-border bg-card">
+              <div className="p-4 border-t border-border bg-card flex-shrink-0">
                 <div className="flex gap-2">
                   <Input
                     value={message}
@@ -259,7 +258,6 @@ const ChatApp = () => {
         </div>
       </div>
     </div>
-    </>
   );
 };
 
