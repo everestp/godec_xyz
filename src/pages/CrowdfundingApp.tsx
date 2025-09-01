@@ -146,7 +146,7 @@ const CrowdfundingApp = () => {
     }
 
     const amount = parseFloat(contributionAmount);
-    setCampaigns(prev => prev.map(c => {
+    const updatedCampaigns = campaigns.map(c => {
       if (c.id === campaignId) {
         const newRaised = c.raised + amount;
         const newContributor = {
@@ -155,17 +155,22 @@ const CrowdfundingApp = () => {
           timestamp: new Date()
         };
         
-        return {
+        const updatedCampaign = {
           ...c,
           raised: newRaised,
           contributors: c.contributors + 1,
           contributorsList: [newContributor, ...c.contributorsList],
           isGoalReached: newRaised >= c.goal
         };
+        // Update the selected campaign state to reflect changes
+        setSelectedCampaign(updatedCampaign);
+        return updatedCampaign;
       }
       return c;
-    }));
+    });
 
+    setCampaigns(updatedCampaigns);
+    
     toast({
       title: "Contribution Successful! 🎉",
       description: `You've contributed ${contributionAmount} BTC to the campaign`,
@@ -216,6 +221,7 @@ const CrowdfundingApp = () => {
     setCampaigns(prev => prev.map(c => 
       c.id === campaignId ? { ...c, hasWithdrawn: true } : c
     ));
+    setSelectedCampaign(prev => prev ? { ...prev, hasWithdrawn: true } : prev);
 
     toast({
       title: "Withdrawal Successful! 💰",
@@ -265,7 +271,7 @@ const CrowdfundingApp = () => {
       daysLeft,
       category: newCampaign.category || "Other",
       creator: userWallet,
-      image: newCampaign.image || "/placeholder.svg",
+      image: newCampaign.image || "https://placehold.co/600x400/121212/e0e0e0?text=Campaign+Image",
       deadline,
       isActive: true,
       contributorsList: [],
@@ -297,302 +303,35 @@ const CrowdfundingApp = () => {
     return { text: "Active", variant: "outline" as const };
   };
 
-  return (
-    <div className="min-h-screen bg-background text-foreground p-6">
-      <header className="max-w-6xl mx-auto mb-8">
-        <div className="flex items-center gap-4 mb-6">
+  // Conditional rendering for the single campaign details view
+  if (selectedCampaign) {
+    const status = getStatusBadge(selectedCampaign);
+    return (
+      <div className="min-h-screen bg-background text-foreground p-6 md:p-10">
+        <header className="max-w-6xl mx-auto mb-8">
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => navigate("/")}
+            onClick={() => setSelectedCampaign(null)}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Home
+            Back to Campaigns
           </Button>
-        </div>
-        
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-bitcoin bg-clip-text text-transparent">
-            Decentralized Crowdfunding
-          </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Support innovative projects with cryptocurrency. Transparent, secure, and decentralized funding for the future.
-          </p>
-        </div>
+        </header>
 
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search campaigns..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-64"
-              />
-            </div>
-            <Button
-              variant={filter === "all" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter("all")}
-            >
-              All
-            </Button>
-            <Button
-              variant={filter === "active" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter("active")}
-            >
-              Active
-            </Button>
-            <Button
-              variant={filter === "funded" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter("funded")}
-            >
-              Funded
-            </Button>
-            <Button
-              variant={filter === "expired" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter("expired")}
-            >
-              Expired
-            </Button>
-          </div>
-
-          <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Create Campaign
-          </Button>
-        </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto">
-        <div className="grid gap-6">
-          {filteredCampaigns.map((campaign) => {
-            const status = getStatusBadge(campaign);
-            return (
-            <Card key={campaign.id} className="card-hover">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <CardTitle className="text-xl">{campaign.title}</CardTitle>
-                      <Badge variant={status.variant}>{status.text}</Badge>
-                      <Badge variant="outline">{campaign.category}</Badge>
-                    </div>
-                    <p className="text-muted-foreground line-clamp-2">{campaign.description}</p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Created by {campaign.creator}
-                    </p>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedCampaign(campaign)}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View Details
-                    </Button>
-                    
-                    {campaign.creator === userWallet && 
-                     campaign.isGoalReached && 
-                     !campaign.isActive && 
-                     !campaign.hasWithdrawn && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleWithdraw(campaign.id)}
-                        className="bg-accent hover:bg-accent/90"
-                      >
-                        <Wallet className="w-4 h-4 mr-2" />
-                        Withdraw
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Progress</span>
-                    <span className="font-semibold">
-                      {campaign.raised} / {campaign.goal} BTC
-                    </span>
-                  </div>
-                  <Progress 
-                    value={(campaign.raised / campaign.goal) * 100} 
-                    className="h-3"
-                  />
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>{Math.round((campaign.raised / campaign.goal) * 100)}% funded</span>
-                    <span>{campaign.goal - campaign.raised} BTC to go</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-center gap-1">
-                      <Bitcoin className="w-4 h-4 text-bitcoin-orange" />
-                      <span className="text-lg font-semibold">{campaign.raised}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">BTC Raised</p>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-center gap-1">
-                      <Users className="w-4 h-4 text-primary" />
-                      <span className="text-lg font-semibold">{campaign.contributors}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Contributors</p>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-center gap-1">
-                      <Clock className="w-4 h-4 text-secondary" />
-                      <span className="text-lg font-semibold">{campaign.daysLeft}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Days Left</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <Input
-                    type="number"
-                    placeholder="Amount in BTC"
-                    value={contributionAmount}
-                    onChange={(e) => setContributionAmount(e.target.value)}
-                    className="flex-1"
-                    step="0.001"
-                    min="0"
-                  />
-                  <Button 
-                    onClick={() => handleContribute(campaign.id)}
-                    className="px-6"
-                  >
-                    <Target className="w-4 h-4 mr-2" />
-                    Contribute
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-            );
-          })}
-        </div>
-
-        {filteredCampaigns.length === 0 && (
-          <div className="text-center py-12">
-            <Target className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No campaigns found</h3>
-            <p className="text-muted-foreground">
-              {searchTerm ? `No campaigns match "${searchTerm}"` : 
-               filter === "all" ? "No campaigns have been created yet." : 
-               `No ${filter} campaigns available.`}
-            </p>
-          </div>
-        )}
-      </main>
-
-      {/* Create Campaign Modal */}
-      <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Create New Campaign</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="title">Campaign Title *</Label>
-              <Input
-                id="title"
-                placeholder="Enter campaign title..."
-                value={newCampaign.title}
-                onChange={(e) => setNewCampaign(prev => ({ ...prev, title: e.target.value }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description *</Label>
-              <Textarea
-                id="description"
-                placeholder="Describe your campaign..."
-                value={newCampaign.description}
-                onChange={(e) => setNewCampaign(prev => ({ ...prev, description: e.target.value }))}
-                rows={4}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="goal">Funding Goal (BTC) *</Label>
-                <Input
-                  id="goal"
-                  type="number"
-                  placeholder="100"
-                  value={newCampaign.goal}
-                  onChange={(e) => setNewCampaign(prev => ({ ...prev, goal: e.target.value }))}
-                  step="0.1"
-                  min="0"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Input
-                  id="category"
-                  placeholder="Technology, Education, etc."
-                  value={newCampaign.category}
-                  onChange={(e) => setNewCampaign(prev => ({ ...prev, category: e.target.value }))}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="deadline">Deadline *</Label>
-              <Input
-                id="deadline"
-                type="datetime-local"
-                value={newCampaign.deadline}
-                onChange={(e) => setNewCampaign(prev => ({ ...prev, deadline: e.target.value }))}
-                min={new Date().toISOString().slice(0, 16)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="image">Image URL</Label>
-              <Input
-                id="image"
-                placeholder="https://example.com/image.jpg"
-                value={newCampaign.image}
-                onChange={(e) => setNewCampaign(prev => ({ ...prev, image: e.target.value }))}
-              />
-            </div>
-
-            <Button onClick={createCampaign} className="w-full">
-              Create Campaign
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Campaign Details Modal */}
-      {selectedCampaign && (
-        <Dialog open={!!selectedCampaign} onOpenChange={() => setSelectedCampaign(null)}>
-          <DialogContent className="max-w-4xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-3">
+        <main className="max-w-4xl mx-auto">
+          <Card className="rounded-2xl shadow-lg border-2 border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-3">
                 {selectedCampaign.title}
-                <Badge variant={getStatusBadge(selectedCampaign).variant}>
-                  {getStatusBadge(selectedCampaign).text}
-                </Badge>
-                <Badge variant="outline">{selectedCampaign.category}</Badge>
-              </DialogTitle>
-            </DialogHeader>
-            
-            <div className="space-y-6">
+                <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
+                  <Badge variant={status.variant}>{status.text}</Badge>
+                  <Badge variant="outline">{selectedCampaign.category}</Badge>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <img 
@@ -603,7 +342,7 @@ const CrowdfundingApp = () => {
                   
                   <p className="text-muted-foreground">{selectedCampaign.description}</p>
                   
-                  <div className="text-sm">
+                  <div className="text-sm space-y-1">
                     <p><span className="font-medium">Creator:</span> {selectedCampaign.creator}</p>
                     <p><span className="font-medium">Deadline:</span> {selectedCampaign.deadline.toLocaleDateString()}</p>
                   </div>
@@ -654,7 +393,7 @@ const CrowdfundingApp = () => {
                   </div>
 
                   {selectedCampaign.isActive && (
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
                       <Input
                         type="number"
                         placeholder="Amount in BTC"
@@ -666,7 +405,7 @@ const CrowdfundingApp = () => {
                       />
                       <Button 
                         onClick={() => handleContribute(selectedCampaign.id)}
-                        className="px-6"
+                        className="w-full sm:w-auto px-6"
                       >
                         <Target className="w-4 h-4 mr-2" />
                         Contribute
@@ -704,9 +443,9 @@ const CrowdfundingApp = () => {
                 {selectedCampaign.contributorsList.length > 0 ? (
                   <div className="space-y-2 max-h-40 overflow-y-auto">
                     {selectedCampaign.contributorsList.map((contributor, index) => (
-                      <div key={index} className="flex justify-between items-center p-2 bg-muted/50 rounded">
+                      <div key={index} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-2 bg-muted/50 rounded">
                         <span className="text-sm font-mono">{contributor.address}</span>
-                        <div className="text-right">
+                        <div className="text-right mt-2 sm:mt-0">
                           <div className="text-sm font-medium">{contributor.amount} BTC</div>
                           <div className="text-xs text-muted-foreground">
                             {contributor.timestamp.toLocaleDateString()}
@@ -719,10 +458,263 @@ const CrowdfundingApp = () => {
                   <p className="text-muted-foreground text-sm">No contributions yet</p>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  // Conditional rendering for the create campaign form
+  if (showCreateForm) {
+    return (
+      <div className="min-h-screen bg-background text-foreground p-6 md:p-10">
+        <header className="max-w-6xl mx-auto mb-8">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setShowCreateForm(false)}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Campaigns
+          </Button>
+        </header>
+
+        <main className="max-w-2xl mx-auto">
+          <Card className="rounded-2xl shadow-lg border-2 border-primary/20">
+            <CardHeader>
+              <CardTitle>Create New Campaign</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="title">Campaign Title *</Label>
+                <Input
+                  id="title"
+                  placeholder="Enter campaign title..."
+                  value={newCampaign.title}
+                  onChange={(e) => setNewCampaign(prev => ({ ...prev, title: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Description *</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Describe your campaign..."
+                  value={newCampaign.description}
+                  onChange={(e) => setNewCampaign(prev => ({ ...prev, description: e.target.value }))}
+                  rows={4}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="goal">Funding Goal (BTC) *</Label>
+                  <Input
+                    id="goal"
+                    type="number"
+                    placeholder="100"
+                    value={newCampaign.goal}
+                    onChange={(e) => setNewCampaign(prev => ({ ...prev, goal: e.target.value }))}
+                    step="0.1"
+                    min="0"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="category">Category</Label>
+                  <Input
+                    id="category"
+                    placeholder="Technology, Education, etc."
+                    value={newCampaign.category}
+                    onChange={(e) => setNewCampaign(prev => ({ ...prev, category: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="deadline">Deadline *</Label>
+                <Input
+                  id="deadline"
+                  type="datetime-local"
+                  value={newCampaign.deadline}
+                  onChange={(e) => setNewCampaign(prev => ({ ...prev, deadline: e.target.value }))}
+                  min={new Date().toISOString().slice(0, 16)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="image">Image URL</Label>
+                <Input
+                  id="image"
+                  placeholder="https://example.com/image.jpg"
+                  value={newCampaign.image}
+                  onChange={(e) => setNewCampaign(prev => ({ ...prev, image: e.target.value }))}
+                />
+              </div>
+
+              <Button onClick={createCampaign} className="w-full">
+                Create Campaign
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  // Main campaign list view
+  return (
+    <div className="min-h-screen bg-background text-foreground p-6 md:p-10">
+      <header className="max-w-6xl mx-auto mb-8">
+        <div className="flex items-center gap-4 mb-6">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Button>
+        </div>
+        
+        <div className="text-center mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2 sm:mb-4 bg-gradient-bitcoin bg-clip-text text-transparent">
+            Decentralized Crowdfunding
+          </h1>
+          <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
+            Support innovative projects with cryptocurrency. Transparent, secure, and decentralized funding for the future.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative w-full sm:w-auto">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search campaigns..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-full sm:w-64"
+              />
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
+            <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
+              <Button
+                variant={filter === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter("all")}
+              >
+                All
+              </Button>
+              <Button
+                variant={filter === "active" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter("active")}
+              >
+                Active
+              </Button>
+              <Button
+                variant={filter === "funded" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter("funded")}
+              >
+                Funded
+              </Button>
+              <Button
+                variant={filter === "expired" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter("expired")}
+              >
+                Expired
+              </Button>
+            </div>
+          </div>
+
+          <Button onClick={() => setShowCreateForm(true)} className="w-full sm:w-auto flex items-center gap-2 mt-2 sm:mt-0">
+            <Plus className="w-4 h-4" />
+            Create Campaign
+          </Button>
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto">
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {filteredCampaigns.map((campaign) => {
+            const status = getStatusBadge(campaign);
+            return (
+              <Card key={campaign.id} className="card-hover">
+                <CardHeader>
+                  <div className="flex flex-col items-start gap-2">
+                    <div className="flex flex-wrap items-center gap-3 mb-2">
+                      <CardTitle className="text-xl">{campaign.title}</CardTitle>
+                      <Badge variant={status.variant}>{status.text}</Badge>
+                      <Badge variant="outline">{campaign.category}</Badge>
+                    </div>
+                    <p className="text-muted-foreground line-clamp-2">{campaign.description}</p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Created by {campaign.creator}
+                    </p>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-center gap-1">
+                        <Bitcoin className="w-4 h-4 text-bitcoin-orange" />
+                        <span className="text-lg font-semibold">{campaign.raised}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">BTC Raised</p>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-center gap-1">
+                        <Users className="w-4 h-4 text-primary" />
+                        <span className="text-lg font-semibold">{campaign.contributors}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Contributors</p>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-center gap-1">
+                        <Clock className="w-4 h-4 text-secondary" />
+                        <span className="text-lg font-semibold">{campaign.daysLeft}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Days {campaign.daysLeft > 0 ? 'Left' : 'Ago'}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-center mt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedCampaign(campaign)}
+                      className="w-full"
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Details
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {filteredCampaigns.length === 0 && (
+          <div className="text-center py-12">
+            <Target className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No campaigns found</h3>
+            <p className="text-muted-foreground">
+              {searchTerm ? `No campaigns match "${searchTerm}"` : 
+               filter === "all" ? "No campaigns have been created yet." : 
+               `No ${filter} campaigns available.`}
+            </p>
+          </div>
+        )}
+      </main>
     </div>
   );
 };
