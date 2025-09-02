@@ -9,7 +9,6 @@ import {
   SolflareWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 import React, { useMemo } from "react";
-import { NestedRoot } from "vaul";
 import { clusterApiUrl } from "@solana/web3.js";
 import'@solana/wallet-adapter-react-ui/styles.css'
 
