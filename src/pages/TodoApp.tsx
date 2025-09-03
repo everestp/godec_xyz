@@ -13,6 +13,7 @@ import { getTaskAddress, useProgram } from "@/utils/solana-program";
 import BN from 'bn.js'; // Import BN.js library
 
 // Type definitions for on-chain Todo
+//Complete to do
 interface Todo {
   author: PublicKey;
   taskTitle: string; // Corrected field name
