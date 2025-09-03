@@ -1,390 +1,579 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
-import { ArrowLeft, Plus, Edit, Trash2, Eye, Calendar, User } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import {
+  Plus,
+  Calendar,
+  User,
+  Loader2,
+  Edit,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
+import {
+  getPostAddress,
+  getUserAddress,
+  useProgram,
+} from "@/utils/solana-program";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { PublicKey, SystemProgram } from "@solana/web3.js";
 
 interface BlogPost {
-  id: number;
   title: string;
   content: string;
   author: string;
   date: string;
-  image_url: string;
+  imageUrl: string;
 }
 
 const BlogApp = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
-  
-  const [posts, setPosts] = useState<BlogPost[]>([
-    {
-      id: 1,
-      title: "The Art of Writing Clean Code",
-      content: "Writing clean, maintainable code isn't just a best practice—it's a mindset. It involves structuring your code in a way that is easy for others (and your future self) to understand and modify. We'll explore principles like the **DRY (Don't Repeat Yourself)** principle, the importance of meaningful variable names, and how to refactor your code incrementally. A well-written codebase is like a clear instruction manual, making collaboration and debugging much smoother.",
-      author: "Alice Smith",
-      date: "2024-03-20",
-      image_url: "https://images.unsplash.com/photo-1743601570341-7844e7862d29?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxmZWF0dXJlZC1waG90b3MtZmVlZHwxOHx8fGVufDB8fHx8fA%3D%3D",
-    },
-    {
-      id: 2,
-      title: "A Comprehensive Guide to Modern JavaScript Frameworks",
-      content: "The JavaScript ecosystem is constantly evolving, with new frameworks and libraries emerging. This guide provides a detailed comparison of the most popular ones: React, Angular, and Vue.js. We'll cover their core philosophies, typical use cases, performance considerations, and community support. By the end, you'll have a clear understanding of which framework is the best fit for your next project, whether you're building a complex single-page application or a simple interactive website.",
-      author: "Bob Johnson",
-      date: "2024-03-18",
-      image_url: "https://images.unsplash.com/photo-1629858341517-8e69ac81e05d?q=80&w=2670&auto=format&fit=crop",
-    },
-    {
-      id: 3,
-      title: "Exploring the World of Serverless Architecture",
-      content: "Serverless computing allows developers to build and run applications without managing servers. This paradigm shifts the focus from infrastructure management to writing business logic. We'll discuss the core concepts of serverless functions (like AWS Lambda or Azure Functions), the benefits like cost savings and automatic scaling, and common use cases such as building APIs, handling real-time data processing, and creating microservices. Learn how serverless can accelerate your development process and reduce operational overhead.",
-      author: "Charlie Brown",
-      date: "2024-03-15",
-      image_url: "https://images.unsplash.com/photo-1629858341517-8e69ac81e05d?q=80&w=2670&auto=format&fit=crop",
-    },
-    {
-      id: 4,
-      title: "The Psychology of User Experience (UX) Design",
-      content: "Great UX design is about more than just aesthetics; it's about understanding human behavior. This article delves into the psychological principles that underpin effective design. We'll explore concepts like **Hick's Law**, which states that the time it takes to make a decision increases with the number of choices, and the **F-shaped pattern**, which describes how users typically scan web content. By applying these principles, you can create interfaces that are intuitive, efficient, and enjoyable for your users.",
-      author: "Diana Prince",
-      date: "2024-03-12",
-      image_url: "https://images.unsplash.com/photo-1549488344-9357609a632e?q=80&w=2670&auto=format&fit=crop",
-    },
-    {
-      id: 5,
-      title: "Getting Started with GraphQL",
-      content: "GraphQL is a query language for your API and a server-side runtime for executing those queries. Unlike traditional REST APIs, where you often have to make multiple requests or receive excessive data, GraphQL allows clients to request exactly the data they need. This post will introduce you to the core concepts of GraphQL, including queries, mutations, and schemas. We'll also provide a simple example of how to set up a basic GraphQL server and client, demonstrating its power in creating more efficient and flexible APIs.",
-      author: "Ethan Hunt",
-      date: "2024-03-10",
-      image_url: "https://images.unsplash.com/photo-1639736144823-380d19d5543c?q=80&w=2670&auto=format&fit=crop",
-    }
-  ]);
+  const wallet = useWallet();
+  const program = useProgram();
 
-  const [isCreating, setIsCreating] = useState(false);
-  const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
-  const [viewingPost, setViewingPost] = useState<BlogPost | null>(null);
+  const [isUserInitialized, setIsUserInitialized] = useState<boolean | null>(
+    null
+  );
+  const [isGlobalLoading, setIsGlobalLoading] = useState(true);
+  const [posts, setPosts] = useState<BlogPost[]>([]);
   const [newPost, setNewPost] = useState({
     title: "",
     content: "",
-    image_url: ""
+    imageUrl: "",
   });
+  const [userForm, setUserForm] = useState({ name: "", avatar: "" });
+  const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
+  const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
 
-  const handleCreatePost = () => {
-    if (!newPost.title.trim() || !newPost.content.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide both title and content for your post",
-        variant: "destructive"
-      });
+  // States for form visibility and loading
+  const [showNewPostForm, setShowNewPostForm] = useState(false);
+  const [isInitializingUser, setIsInitializingUser] = useState(false);
+  const [isCreatingPost, setIsCreatingPost] = useState(false);
+  const [isUpdatingPost, setIsUpdatingPost] = useState(false);
+  const [deletingPostTitle, setDeletingPostTitle] = useState<string | null>(
+    null
+  );
+
+  const fetchPosts = useCallback(async () => {
+    if (!program) return;
+    setIsGlobalLoading(true);
+    try {
+      const postAccounts = await program.account.postAccount.all();
+      const userAccounts = await program.account.userAccount.all();
+
+      console.log("This is the post Account", postAccounts);
+      console.log("This is the user Account", userAccounts);
+      const loaded: BlogPost[] = postAccounts.map(({ account }) => ({
+        title: account.title.trim(),
+        content: account.content,
+        author: (account.authority as PublicKey).toBase58(),
+        imageUrl: account.imageUrl,
+        date: new Date().toLocaleDateString(),
+      }));
+      setPosts(
+        loaded.sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        )
+      );
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Failed to load posts.", variant: "destructive" });
+    } finally {
+      setIsGlobalLoading(false);
+    }
+  }, [ wallet.publicKey ,posts]);
+
+  const checkUser = useCallback(async () => {
+    if (!wallet.publicKey || !program) {
+      setIsUserInitialized(false);
+      setIsGlobalLoading(false);
       return;
     }
+    try {
+      const user = await program.account.userAccount.fetchNullable(
+        getUserAddress(wallet.publicKey)
+      );
+      setIsUserInitialized(!!user);
+    } catch (err) {
+      console.error("Error checking user:", err);
+      setIsUserInitialized(false);
+    } finally {
+      setIsGlobalLoading(false);
+    }
+  }, [wallet.publicKey]);
 
-    const post: BlogPost = {
-      id: Date.now(),
-      title: newPost.title,
-      content: newPost.content,
-      author: "You",
-      date: new Date().toISOString().split('T')[0],
-      image_url: newPost.image_url,
-    };
+  useEffect(() => {
+    if (wallet.publicKey) {
+      checkUser();
+      fetchPosts();
+    }
+  }, [wallet.publicKey]);
 
-    setPosts(prev => [post, ...prev]);
-    setNewPost({ title: "", content: "", image_url: "" });
-    setIsCreating(false);
-    
-    toast({
-      title: "Post Created! 📝",
-      description: "Your blog post has been published successfully",
-      variant: "default"
-    });
-  };
-
-  const handleDeletePost = (id: number) => {
-    setPosts(prev => prev.filter(post => post.id !== id));
-    toast({
-      title: "Post Deleted",
-      description: "The blog post has been removed",
-      variant: "default"
-    });
-  };
-
-  const handleEditPost = (post: BlogPost) => {
-    setEditingPost(post);
-  };
-
-  const handleUpdatePost = () => {
-    if (!editingPost?.title.trim() || !editingPost?.content.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide both title and content for your post",
-        variant: "destructive"
+  const initializeUser = async () => {
+    if (!wallet.publicKey || !program || !userForm.name) {
+      return toast({
+        title: "Please enter a name.",
+        variant: "destructive",
       });
-      return;
     }
 
-    setPosts(prev => 
-      prev.map(p => p.id === editingPost.id ? editingPost : p)
-    );
+    setIsInitializingUser(true);
+    try {
+      const userAccount = getUserAddress(wallet.publicKey);
+      await program.methods
+        .initUser(userForm.name, userForm.avatar)
+        .accounts({
+          userAccount: userAccount,
+          authority: wallet.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      setIsUserInitialized(true);
+      toast({ title: "Account initialized successfully!" });
+    } catch (error) {
+      console.error("Error initializing user:", error);
+      toast({
+        title: "Error",
+        description: "Failed to initialize user. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsInitializingUser(false);
+    }
+  };
+
+  const createPostOnChain = async () => {
+    if (!wallet.publicKey || !program || !newPost.title || !newPost.content) {
+      return toast({
+        title: "Please fill out the title and content.",
+        variant: "destructive",
+      });
+    }
+    setIsCreatingPost(true);
+
+    try {
+      const userPDA = getUserAddress(wallet.publicKey);
+      const postPDA = getPostAddress(wallet.publicKey, newPost.title.trim());
+
+      await program.methods
+        .createPost(newPost.title.trim(), newPost.content.trim(), newPost.imageUrl || "")
+        .accounts({
+          postAccount: postPDA,
+          userAccount: userPDA,
+          authority: wallet.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      setNewPost({ title: "", content: "", imageUrl: "" });
+      setShowNewPostForm(false);
+      await fetchPosts();
+      toast({ title: "Post created successfully!" });
+    } catch (error) {
+      console.error("Error creating post:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create post. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingPost(false);
+    }
+  };
+
+  const updatePostOnChain = async () => {
+    if (!wallet.publicKey || !program || !editingPost) return;
+
+    setIsUpdatingPost(true);
+    try {
+      const userPDA = getUserAddress(wallet.publicKey);
+      const postPDA = getPostAddress(wallet.publicKey, editingPost.title.trim());
+
+      await program.methods
+        .updatePost(editingPost.content, editingPost.imageUrl)
+        .accounts({
+          postAccount: postPDA,
+          userAccount: userPDA,
+          authority: wallet.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      setEditingPost(null);
+      await fetchPosts();
+      toast({ title: "Post updated successfully!" });
+    } catch (error) {
+      console.error("Error updating post:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update blog. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingPost(false);
+    }
+  };
+
+  const deletePost = (post: BlogPost) => async () => {
+    if (!wallet.publicKey || !program) return;
+
+    setDeletingPostTitle(post.title);
+    try {
+      const userPDA = getUserAddress(wallet.publicKey);
+      const postPDA = getPostAddress(wallet.publicKey, post.title);
+
+      await program.methods
+        .deletePost(post.title)
+        .accounts({
+          postAccount: postPDA,
+          userAccount: userPDA,
+          authority: wallet.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      await fetchPosts();
+      toast({ title: "Post deleted successfully!" });
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete blog. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingPostTitle(null);
+    }
+  };
+
+  // Helper functions for UI interactions
+  const handleNewPostClick = () => {
     setEditingPost(null);
-    toast({
-      title: "Post Updated! ✨",
-      description: "Your blog post has been updated successfully",
-      variant: "default"
-    });
+    setSelectedPost(null);
+    setShowNewPostForm(true);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  const handlePostClick = (post: BlogPost) => {
+    setSelectedPost(post);
+    setEditingPost(null);
+    setShowNewPostForm(false);
   };
 
-  if (viewingPost) {
+  // UI Rendering
+  if (!wallet.publicKey) {
     return (
-     <>
-     
-      <div className="min-h-screen bg-background text-foreground p-6">
-        
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-4 mb-8 ">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setViewingPost(null)}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Blog
-            </Button>
-          </div>
-          <article>
-            <header className="mb-8">
-              <h1 className="text-4xl font-bold mb-4">{viewingPost.title}</h1>
-              <div className="flex items-center gap-4 text-muted-foreground mb-4">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  {viewingPost.author}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  {formatDate(viewingPost.date)}
-                </div>
-              </div>
-              <div className="flex gap-2"></div>
-            </header>
-            {viewingPost.image_url && (
-              <img 
-                src={viewingPost.image_url} 
-                alt={viewingPost.title} 
-                className="w-full h-auto mb-8 rounded-lg shadow-md object-cover" 
-              />
-            )}
-            <div className="prose prose-lg max-w-none">
-              <p className="text-lg leading-relaxed whitespace-pre-wrap">
-                {viewingPost.content}
-              </p>
-            </div>
-          </article>
-        </div>
+      <div className="min-h-screen p-6 flex items-center justify-center">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle>Connect Wallet</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <WalletMultiButton />
+          </CardContent>
+        </Card>
       </div>
-     </>
+    );
+  }
+
+  if (isGlobalLoading || isUserInitialized === null) {
+    return (
+      <div className="min-h-screen p-6 flex items-center justify-center">
+        <Card className="max-w-md w-full">
+          <CardContent className="flex flex-col items-center justify-center py-10 space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p>Loading...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isUserInitialized === false) {
+    return (
+      <div className="min-h-screen p-6 flex items-center justify-center">
+        <Card className="max-w-md w-full space-y-4">
+          <CardHeader>
+            <CardTitle>Initialize Account</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <Input
+                placeholder="Name"
+                value={userForm.name}
+                onChange={(e) =>
+                  setUserForm({ ...userForm, name: e.target.value })
+                }
+                disabled={isInitializingUser}
+              />
+              <Input
+                placeholder="Avatar URL (optional)"
+                value={userForm.avatar}
+                onChange={(e) =>
+                  setUserForm({ ...userForm, avatar: e.target.value })
+                }
+                disabled={isInitializingUser}
+              />
+            </div>
+            <div className="flex gap-3 mt-4">
+              <Button onClick={initializeUser} disabled={isInitializingUser}>
+                {isInitializingUser ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                    Initializing...
+                  </>
+                ) : (
+                  "Initialize"
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => wallet.disconnect()}
+                disabled={isInitializingUser}
+              >
+                Disconnect
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <>
-    <div className="min-h-screen bg-background text-foreground p-6 mt-10">
-      <header className="max-w-6xl mx-auto mb-8">
-        <div className="flex items-center gap-4 mb-6">
-          
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => navigate("/")}
-            className="flex items-center gap-2"
+    <div className="min-h-screen p-6 mt-10">
+      <header className="max-w-7xl mx-auto mb-8 flex justify-between items-center">
+        <h1 className="text-3xl text-primary font-bold">Decentralized Blog</h1>
+        <div className="flex gap-4 items-center">
+          <Button
+            onClick={handleNewPostClick}
+            disabled={isCreatingPost || isUpdatingPost}
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Home
+            <Plus className="mr-2 h-4 w-4" /> New Post
           </Button>
-        </div>
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-4xl font-bold mb-4 bg-gradient-bitcoin bg-clip-text text-transparent">
-              Decentralized Blog
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              Share your thoughts on decentralization, privacy, and the future of technology.
-            </p>
-          </div>
-          <Button 
-            onClick={() => setIsCreating(true)}
-            size="lg"
-            className="flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            New Post
-          </Button>
+          <WalletMultiButton />
         </div>
       </header>
-      <main className="max-w-6xl mx-auto">
-        {isCreating && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Create New Post</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Input
-                placeholder="Post Title"
-                value={newPost.title}
-                onChange={(e) => setNewPost(prev => ({ ...prev, title: e.target.value }))}
-              />
-              <Textarea
-                placeholder="Write your blog post content here..."
-                value={newPost.content}
-                onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
-                rows={10}
-              />
-              <Input
-                placeholder="Image Url (Optional)"
-                value={newPost.image_url}
-                onChange={(e) => setNewPost(prev => ({ ...prev, image_url: e.target.value }))}
-              />
-              <div className="flex gap-3">
-                <Button onClick={handleCreatePost}>
-                  Publish Post
-                </Button>
-                <Button variant="outline" onClick={() => setIsCreating(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        {editingPost && (
-          <Card className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-6">
-            <Card className="w-full max-w-2xl">
-              <CardHeader>
-                <CardTitle>Edit Post</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Input
-                  placeholder="Post Title"
-                  value={editingPost.title}
-                  onChange={(e) => setEditingPost(prev => prev ? { ...prev, title: e.target.value } : null)}
-                />
-                <Textarea
-                  placeholder="Write your blog post content here..."
-                  value={editingPost.content}
-                  onChange={(e) => setEditingPost(prev => prev ? { ...prev, content: e.target.value } : null)}
-                  rows={10}
-                />
-                <Input
-                  placeholder="Image Url (Optional)"
-                  value={editingPost.image_url}
-                  onChange={(e) => setEditingPost(prev => prev ? { ...prev, image_url: e.target.value } : null)}
-                />
-                <div className="flex gap-3">
-                  <Button onClick={handleUpdatePost}>
-                    Save Changes
-                  </Button>
-                  <Button variant="outline" onClick={() => setEditingPost(null)}>
-                    Cancel
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </Card>
-        )}
-        <div className="grid gap-6">
-          {posts.map((post) => (
-            <Card key={post.id} className="card-hover">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1" onClick={() => setViewingPost(post)}>
-                    <CardTitle className="text-xl mb-2">{post.title}</CardTitle>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                      <div className="flex items-center gap-1">
-                        <User className="w-4 h-4" />
-                        {post.author}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {formatDate(post.date)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => setViewingPost(post)}
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    {post.author === "You" && (
-                      <>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleEditPost(post)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleDeletePost(post.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {post.image_url && (
-                  <img 
-                    src={post.image_url} 
-                    alt={post.title} 
-                    className="w-full h-48 object-cover rounded-md mb-4" 
-                  />
+
+      {/* Conditional rendering for the forms */}
+      {showNewPostForm && !editingPost ? (
+        <Card className="max-w-7xl mx-auto mb-8">
+          <CardHeader>
+            <CardTitle>Create New Post</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Input
+              placeholder="Title"
+              value={newPost.title}
+              onChange={(e) =>
+                setNewPost({ ...newPost, title: e.target.value })
+              }
+              disabled={isCreatingPost}
+            />
+            <Textarea
+              placeholder="Content"
+              value={newPost.content}
+              onChange={(e) =>
+                setNewPost({ ...newPost, content: e.target.value })
+              }
+              rows={10}
+              disabled={isCreatingPost}
+            />
+            <Input
+              placeholder="Image URL (optional)"
+              value={newPost.imageUrl}
+              onChange={(e) =>
+                setNewPost({ ...newPost, imageUrl: e.target.value })
+              }
+              disabled={isCreatingPost}
+            />
+            <div className="flex gap-3">
+              <Button
+                onClick={createPostOnChain}
+                disabled={isCreatingPost || !newPost.title || !newPost.content}
+              >
+                {isCreatingPost ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                    Publishing...
+                  </>
+                ) : (
+                  "Publish Post"
                 )}
-                <Button 
-                  variant="link" 
-                  className="p-0 h-auto mt-3"
-                  onClick={() => setViewingPost(post)}
-                >
-                  Read more →
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        {posts.length === 0 && (
-          <Card className="text-center p-12">
-            <CardContent>
-              <h3 className="text-xl font-semibold mb-2">No Posts Yet</h3>
-              <p className="text-muted-foreground mb-6">
-                Be the first to share your thoughts on decentralization!
-              </p>
-              <Button onClick={() => setIsCreating(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create First Post
               </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setNewPost({ title: "", content: "", imageUrl: "" });
+                  setShowNewPostForm(false);
+                }}
+                disabled={isCreatingPost}
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : editingPost ? (
+        <Card className="max-w-7xl mx-auto mb-8">
+          <CardHeader>
+            <CardTitle>Edit Post</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Input value={editingPost.title} disabled />
+            <Textarea
+              value={editingPost.content}
+              onChange={(e) =>
+                setEditingPost({ ...editingPost, content: e.target.value })
+              }
+              rows={10}
+              disabled={isUpdatingPost}
+            />
+            <Input
+              value={editingPost.imageUrl}
+              onChange={(e) =>
+                setEditingPost({ ...editingPost, imageUrl: e.target.value })
+              }
+              disabled={isUpdatingPost}
+            />
+            <div className="flex gap-3">
+              <Button onClick={updatePostOnChain} disabled={isUpdatingPost}>
+                {isUpdatingPost ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                    Updating...
+                  </>
+                ) : (
+                  "Update Post"
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setEditingPost(null)}
+                disabled={isUpdatingPost}
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : selectedPost ? (
+        <div className="max-w-4xl mx-auto p-6">
+          <Button variant="ghost" onClick={() => setSelectedPost(null)} className="mb-4">
+            <X className="mr-2 h-4 w-4" /> Go Back
+          </Button>
+          <Card>
+            <CardHeader>
+              <CardTitle>{selectedPost.title}</CardTitle>
+              <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                <User className="w-4 h-4" />{" "}
+                {selectedPost.author.substring(0, 4)}...
+                {selectedPost.author.slice(-4)} &nbsp;
+                <Calendar className="w-4 h-4" /> {selectedPost.date}
+              </div>
+            </CardHeader>
+            {selectedPost.imageUrl && (
+              <img
+                src={selectedPost.imageUrl}
+                alt={selectedPost.title}
+                className="w-full object-cover rounded-md mb-4"
+              />
+            )}
+            <CardContent>
+              <p className="text-lg leading-relaxed">{selectedPost.content}</p>
             </CardContent>
           </Card>
-        )}
-      </main>
+        </div>
+      ) : (
+        <main className="max-w-7xl mx-auto">
+          {isGlobalLoading ? (
+            <Card className="text-center p-12">
+              <CardContent className="space-y-4">
+                <Loader2 className="animate-spin mx-auto h-8 w-8" />
+                <p>Loading posts...</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {posts.length === 0 && (
+                <div className="text-center p-12">
+                  <h3 className="text-2xl font-semibold mb-4">No Posts Yet</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Be the first to create a post on the decentralized blog.
+                  </p>
+                  <Button onClick={handleNewPostClick}>
+                    <Plus className="mr-2 h-4 w-4" /> Create First Post
+                  </Button>
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {posts.map((post) => (
+                  <Card
+                    key={post.title}
+                    className="hover:shadow-lg transition-shadow cursor-pointer flex flex-col"
+                    onClick={() => handlePostClick(post)}
+                  >
+                    {post.imageUrl && (
+                      <div className="relative overflow-hidden w-full h-48 rounded-t-md">
+                        <img
+                          src={post.imageUrl}
+                          alt={post.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <CardHeader className="flex-grow">
+                      <CardTitle>{post.title}</CardTitle>
+                      <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                        <User className="w-4 h-4" />{" "}
+                        {post.author.substring(0, 4)}...
+                        {post.author.slice(-4)} &nbsp;
+                        <Calendar className="w-4 h-4" /> {post.date}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="flex-grow flex flex-col justify-between">
+                      <p className="line-clamp-3 text-sm">
+                        {post.content}
+                      </p>
+                      {wallet.publicKey?.toBase58() === post.author && (
+                        <div className="flex gap-2 mt-4 self-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingPost(post);
+                              setShowNewPostForm(false);
+                            }}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deletePost(post)();
+                            }}
+                            disabled={deletingPostTitle === post.title}
+                          >
+                            {deletingPostTitle === post.title ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
+          )}
+        </main>
+      )}
     </div>
-    </>
   );
 };
 

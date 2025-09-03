@@ -3,12 +3,15 @@
 import { AnchorProvider, Program, utils, web3, BN } from '@project-serum/anchor';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import idl from '../idl/godecidl.json';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
 import { useMemo } from 'react';
-import { program } from '@project-serum/anchor/dist/cjs/native/system';
+import { SYSTEM_PROGRAM_ID } from '@coral-xyz/anchor/dist/cjs/native/system';
+import { useActionData } from 'react-router-dom';
 
-const programID = new web3.PublicKey('GZGMTga8By8XW6vUHq5FUET93PcU9HhhSUa2mimEwSY5');
 
+const programID = new web3.PublicKey('73KCAwnfEwU7LPX7Ri2FXHvp1NZtCyRUc6EJVvm59oEs');
+
+ 
 const RPC_URL ="https://api.devnet.solana.com"
 // A custom hook to get the program instance
 export const useProgram = () => {
@@ -148,23 +151,7 @@ export const getVoterAddress = (pollId: number, user: web3.PublicKey): web3.Publ
   return pda;
 };
 
-// Returns the PDA for a user's profile.
-export const getUserAddress = (authority: web3.PublicKey): web3.PublicKey => {
-  const [pda] = web3.PublicKey.findProgramAddressSync(
-    [utils.bytes.utf8.encode('user'), authority.toBuffer()],
-    programID
-  );
-  return pda;
-};
 
-// Returns the PDA for a specific post.
-export const getPostAddress = (authority: web3.PublicKey, postId: number): web3.PublicKey => {
-  const [pda] = web3.PublicKey.findProgramAddressSync(
-    [utils.bytes.utf8.encode('post'), authority.toBuffer(), new BN(postId).toBuffer('le', 1)],
-    programID
-  );
-  return pda;
-};
 
 export function getThreadAddress(sender: PublicKey, recipient: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
@@ -193,3 +180,94 @@ export function getMessageAddress(
     programID
   )[0];
 }
+
+
+// Blog App
+// Returns the PDA for a user's profile.
+export const getUserAddress = (authority: web3.PublicKey): web3.PublicKey => {
+  const [pda] = web3.PublicKey.findProgramAddressSync(
+    [utils.bytes.utf8.encode('user'), authority.toBuffer()],
+    programID
+  );
+  return pda;
+};
+
+// Returns the PDA for a specific post.
+export const getPostAddress = (authority: PublicKey, title: string) => {
+  return PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("post"),               // POST_SEED
+    authority.toBuffer(),              // authority
+    Buffer.from(title)                 // raw, untrimmed title
+    ],
+    programID
+  )[0];
+};
+
+
+
+
+
+export const initUser = async (name: string, avatar: string) => {
+
+const program = useProgram()
+  if (!program || !wallet) throw new Error("Wallet or program not ready");
+
+  const userAccount = getUserAddress(wallet.publicKey);
+
+ 
+};
+
+// export const createPostOnChain = async (title: string, content: string ,image:string) => {
+// const program = useProgram()
+//   if (!program || !wallet) throw new Error("Wallet or program not ready");
+
+//   const userPDA = getUserAddress(wallet.publicKey);
+//   const postPDA = getPostAddress(wallet.publicKey, title);
+
+//   await program.methods
+//     .createPost(title, content ,image)
+//     .accounts({
+//       postAccount: postPDA,
+//       userAccount: userPDA,
+//       authority: wallet.publicKey,
+//       systemProgram:SystemProgram.programId
+//     })
+//     .rpc();
+// };
+// export const updatePostOnChain = async (title: string, content: string ,image:string) => {
+// const program = useProgram()
+//   const wallet = useWallet()
+//   if (!program || !wallet) throw new Error("Wallet or program not ready");
+
+//   const userPDA = getUserAddress(wallet.publicKey);
+//   const postPDA = getPostAddress(wallet.publicKey, title);
+
+//   await program.methods
+//     .upadePost(content, image)
+//     .accounts({
+//       postAccount: postPDA,
+//       userAccount: userPDA,
+//       authority: wallet.publicKey,
+//       systemProgram:SystemProgram.programId
+//     })
+//     .rpc();
+// };
+// export const deletePostOnChain = async (title: string) => {
+// const program = useProgram()
+
+//   if (!program || !wallet) throw new Error("Wallet or program not ready");
+
+//   const userPDA = getUserAddress(wallet.publicKey);
+//   const postPDA = getPostAddress(wallet.publicKey, title);
+
+//   await program.methods
+//     .delete()
+//     .accounts({
+//       postAccount: postPDA,
+//       userAccount: userPDA,
+//       authority: wallet.publicKey,
+//       systemProgram:SystemProgram.programId
+//     })
+//     .rpc();
+// };

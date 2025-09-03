@@ -185,7 +185,7 @@ const ChatApp = () => {
           recipient: recipientKey,
           systemProgram: SystemProgram.programId,
         })
-        .rpc({ commitment: "confirmed" });
+        .rpc({ commitment: "finalized" });
 
       toast({
         title: "Chat Created",
@@ -332,33 +332,39 @@ const ChatApp = () => {
             ) : threads.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground">No chats found.</div>
             ) : (
-              threads.map((thread) => {
-                const recipientKey = getRecipientKey(thread);
-                if (!recipientKey) return null;
-                return (
-                  <div
-                    key={thread.publicKey.toBase58()}
-                    onClick={() => setSelectedChat(thread.publicKey)}
-                    className={`p-4 cursor-pointer hover:bg-muted/50 border-b border-border/50 transition-colors ${
-                      selectedChat && selectedChat.equals(thread.publicKey) ? "bg-muted" : ""
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarFallback>{formatKey(recipientKey)[0]}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start">
-                          <h3 className="font-medium truncate">{formatKey(recipientKey)}</h3>
-                        </div>
-                        <p className="text-muted-foreground text-sm truncate">
-                          Start chatting...
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
+             threads.map((thread) => {
+  const recipientKey = getRecipientKey(thread);
+  if (!recipientKey) return null;
+
+  const isSelected = selectedChat && selectedChat.equals(thread.publicKey);
+
+  return (
+    <div
+      key={thread.publicKey.toBase58()}
+      onClick={() => setSelectedChat(thread.publicKey)}
+      className={`flex items-center gap-4 p-4 cursor-pointer border-b border-border/30 transition-all duration-200 ${
+        isSelected ? "bg-muted shadow-inner" : "hover:bg-muted/40"
+      }`}
+    >
+      {/* Avatar */}
+      <img
+        src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(thread.publicKey)}`}
+        alt="avatar"
+        className="w-14 h-14 rounded-full border-2 border-white shadow-md transition-transform duration-300 hover:scale-105"
+      />
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-center">
+          <h3 className="text-base font-semibold truncate text-foreground">
+            {formatKey(recipientKey)}
+          </h3>
+        </div>
+        {/* Optionally, you can add last message preview or timestamp here */}
+      </div>
+    </div>
+  );
+})
             )}
           </div>
         </div>
