@@ -348,9 +348,14 @@ const NotesApp = () => {
                         <p className="text-xs text-muted-foreground truncate">
                           {note.account.content || "No content"}
                         </p>
+                        <div>
+
                         <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(note.account.createdAt * 1000).toLocaleDateString()}
+                          Created :{new Date(note.account.createdAt * 1000).toLocaleString()} 
+                          
                         </p>
+                        </div>
+                        
                       </div>
                     ))
                   )}
@@ -412,7 +417,7 @@ const NotesApp = () => {
                       <CardTitle className="text-lg">{selectedNote.account.title}</CardTitle>
                     )}
                     <p className="text-sm text-muted-foreground mt-1">
-                      Last updated: {new Date(selectedNote.account.lastUpdate * 1000).toLocaleDateString()}
+                      Last updated: {new Date(selectedNote.account.lastUpdate * 1000).toLocaleString()}
                     </p>
                   </div>
                   <div className="flex gap-2">

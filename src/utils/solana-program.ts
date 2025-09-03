@@ -3,8 +3,9 @@
 import { AnchorProvider, Program, utils, web3, BN } from '@project-serum/anchor';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import idl from '../idl/godecidl.json';
-import { Connection } from '@solana/web3.js';
+import { Connection, PublicKey } from '@solana/web3.js';
 import { useMemo } from 'react';
+import { program } from '@project-serum/anchor/dist/cjs/native/system';
 
 const programID = new web3.PublicKey('GZGMTga8By8XW6vUHq5FUET93PcU9HhhSUa2mimEwSY5');
 
@@ -165,25 +166,30 @@ export const getPostAddress = (authority: web3.PublicKey, postId: number): web3.
   return pda;
 };
 
-// Returns the PDA for a message thread.
-export const getThreadAddress = (sender: web3.PublicKey, recipient: web3.PublicKey): web3.PublicKey => {
-  const [pda] = web3.PublicKey.findProgramAddressSync(
-    [utils.bytes.utf8.encode('thread'), sender.toBuffer(), recipient.toBuffer()],
-    programID
-  );
-  return pda;
-};
+export function getThreadAddress(sender: PublicKey, recipient: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("thread"),
+      sender.toBuffer(),
+      recipient.toBuffer(),
+    ],
+   programID
+  )[0];
+}
 
 // Returns the PDA for a specific message within a thread.
-export const getMessageAddress = (thread: web3.PublicKey, sender: web3.PublicKey, timestamp: number): web3.PublicKey => {
-  const [pda] = web3.PublicKey.findProgramAddressSync(
+export function getMessageAddress(
+  thread: PublicKey,
+  sender: PublicKey,
+  timestamp: number
+): PublicKey {
+  return PublicKey.findProgramAddressSync(
     [
-      utils.bytes.utf8.encode('message'),
+      Buffer.from("message"),
       thread.toBuffer(),
       sender.toBuffer(),
-      new BN(timestamp).toBuffer('le', 1),
+      new BN(timestamp).toArrayLike(Buffer, "le", 8),
     ],
     programID
-  );
-  return pda;
-};
+  )[0];
+}

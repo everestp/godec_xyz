@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,56 +7,179 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Plus, Trash2, Lock, Shield, CheckCircle2, CircleDashed } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { PublicKey, SystemProgram } from "@solana/web3.js";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { getTaskAddress, useProgram } from "@/utils/solana-program";
+import BN from 'bn.js'; // Import BN.js library
 
+// Type definitions for on-chain Todo
 interface Todo {
-  id: string;
-  text: string;
-  completed: boolean;
-  createdAt: Date;
+  author: PublicKey;
+  taskTitle: string; // Corrected field name
+  isCompleted: boolean; // Corrected field name
+  createdAt: BN; // Corrected type
+  lastUpdate: BN; // Corrected type
+}
+
+interface TodoAccount {
+  publicKey: PublicKey;
+  account: Todo;
 }
 
 const TodoApp = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [todos, setTodos] = useState<Todo[]>([
-    { id: "1", text: "Learn about decentralized applications", completed: false, createdAt: new Date(Date.now() - 86400000) },
-    { id: "2", text: "Set up secure wallet", completed: true, createdAt: new Date(Date.now() - 172800000) },
-    { id: "3", text: "Explore privacy features", completed: false, createdAt: new Date(Date.now() - 259200000) }
-  ]);
+  const wallet = useWallet();
+  const program = useProgram();
+
+  // State for UI and on-chain interactions
+  const [todos, setTodos] = useState<TodoAccount[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [newTodo, setNewTodo] = useState("");
 
-  const addTodo = () => {
-    if (newTodo.trim()) {
-      const todo: Todo = {
-        id: Date.now().toString(),
-        text: newTodo,
-        completed: false,
-        createdAt: new Date()
-      };
-      setTodos([todo, ...todos]);
-      setNewTodo("");
+  // Function to fetch todos from the blockchain
+  const loadTodos = async () => {
+    if (!wallet.publicKey || !program) {
+      setTodos([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const fetchedTodos = await program.account.todoAccount.all([
+        {
+          memcmp: {
+            offset: 8,
+            bytes: wallet.publicKey.toBase58(),
+          },
+        },
+      ]);
+      setTodos(fetchedTodos as TodoAccount[]);
+    } catch (error) {
+      console.error("Error loading todos:", error);
       toast({
-        title: "Task Added",
-        description: "Your task has been securely encrypted and stored.",
+        title: "Error",
+        description: "Failed to load todos. Please try again.",
+        variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const toggleTodo = (id: string) => {
-    setTodos(todos.map(todo => 
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ));
+  useEffect(() => {
+    if (wallet.connected) {
+      loadTodos();
+    }
+  }, [wallet.connected]);
+
+  // Add a new todo
+  const addTodo = async () => {
+    if (!newTodo.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a task.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      if (!program || !wallet.publicKey) throw new Error("Program or wallet not found.");
+
+      const todoAddress = getTaskAddress(wallet.publicKey, newTodo);
+
+      await program.methods
+        .createTask(newTodo)
+        .accounts({
+          todoAccount: todoAddress,
+          author: wallet.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+
+      toast({
+        title: "Success",
+        description: "Task added successfully!",
+      });
+      setNewTodo("");
+      await loadTodos();
+    } catch (error) {
+      console.error("Error creating todo:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add task.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const deleteTodo = (id: string) => {
-    setTodos(todos.filter(todo => todo.id !== id));
-    toast({
-      title: "Task Deleted",
-      description: "Task has been permanently removed from your encrypted storage.",
-    });
+  // Toggle todo completion
+  const toggleTodo = async (todoAccount: TodoAccount) => {
+    setIsSubmitting(true);
+    try {
+      if (!program || !wallet.publicKey) throw new Error("Program or wallet not found.");
+
+      await program.methods
+        .markComplete()
+        .accounts({
+          todoAccount: todoAccount.publicKey,
+          author: wallet.publicKey,
+        })
+        .rpc();
+
+      toast({
+        title: "Success",
+        description: "Task status updated!",
+      });
+      await loadTodos();
+    } catch (error) {
+      console.error("Error toggling todo:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update task status.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const completedCount = todos.filter(todo => todo.completed).length;
+  // Delete a todo
+  const deleteTodo = async (todoAccount: TodoAccount) => {
+    setIsSubmitting(true);
+    try {
+      if (!program || !wallet.publicKey) throw new Error("Program or wallet not found.");
+
+      await program.methods
+        .deleteTask()
+        .accounts({
+          todoAccount: todoAccount.publicKey,
+          author: wallet.publicKey,
+        })
+        .rpc();
+
+      toast({
+        title: "Success",
+        description: "Task deleted!",
+      });
+      await loadTodos();
+    } catch (error) {
+      console.error("Error deleting todo:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete task.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const completedCount = todos.filter(todo => todo.account.isCompleted).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,7 +196,7 @@ const TodoApp = () => {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Home
             </Button>
-            
+
             <div className="flex-1 text-center">
               <h1 className="text-2xl font-bold text-primary">Secure Todo</h1>
               <p className="text-sm text-muted-foreground">Private task management with end-to-end encryption</p>
@@ -127,15 +250,20 @@ const TodoApp = () => {
                   onChange={(e) => setNewTodo(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && addTodo()}
                   className="flex-1"
+                  disabled={isSubmitting || !wallet.publicKey}
                 />
-                <Button onClick={addTodo} className="px-6 w-full sm:w-auto">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Task
+                <Button onClick={addTodo} className="px-6 w-full sm:w-auto" disabled={isSubmitting || !wallet.publicKey}>
+                  {isSubmitting ? "Adding..." : "Add Task"}
                 </Button>
               </div>
+              {!wallet.publicKey && (
+                <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
+                  Please connect your wallet to add tasks.
+                </p>
+              )}
               <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
                 <Lock className="w-3 h-3" />
-                Your tasks are encrypted and stored on-chain.
+                Your tasks are stored on-chain.
               </p>
             </CardContent>
           </Card>
@@ -146,7 +274,11 @@ const TodoApp = () => {
               <CardTitle>Your Tasks</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {todos.length === 0 ? (
+              {loading ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <p className="text-sm">Loading tasks...</p>
+                </div>
+              ) : todos.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
                     <Plus className="w-8 h-8" />
@@ -156,67 +288,67 @@ const TodoApp = () => {
                 </div>
               ) : (
                 todos.map((todo) => (
- <div
-  key={todo.id}
-  className={`flex items-center gap-4 p-4 rounded-lg border transition-all duration-300 hover:shadow-md hover:scale-[1.01] ${
-    todo.completed ? "bg-muted/50 border-accent/30" : "bg-card border-border/50"
-  }`}
->
-  {/* Checkbox */}
-  <div className="flex items-center justify-center">
-    <Checkbox
-      checked={todo.completed}
-      onCheckedChange={() => toggleTodo(todo.id)}
-      className={`rounded-full w-6 h-6 transition-colors ${
-        todo.completed
-          ? "bg-accent border-accent"
-          : "border-border/50"
-      }`}
-    />
-  </div>
+                  <div
+                    key={todo.publicKey.toBase58()}
+                    className={`flex items-center gap-4 p-4 rounded-lg border transition-all duration-300 hover:shadow-md hover:scale-[1.01] ${
+                      todo.account.isCompleted ? "bg-muted/50 border-accent/30" : "bg-card border-border/50"
+                    }`}
+                  >
+                    {/* Checkbox */}
+                    <div className="flex items-center justify-center">
+                      <Checkbox
+                        checked={todo.account.isCompleted}
+                        onCheckedChange={() => toggleTodo(todo)}
+                        className={`rounded-full w-6 h-6 transition-colors ${
+                          todo.account.isCompleted
+                            ? "bg-accent border-accent"
+                            : "border-border/50"
+                        }`}
+                        disabled={isSubmitting}
+                      />
+                    </div>
 
-  {/* Todo Content */}
-  <div className="flex-1 overflow-hidden">
-    <p
-      className={`font-medium text-base transition-colors ${
-        todo.completed
-          ? "line-through text-muted-foreground"
-          : "text-foreground"
-      }`}
-    >
-      {todo.text}
-    </p>
-    <p className="text-xs text-muted-foreground mt-1">
-      Created: {todo.createdAt.toLocaleDateString()} at{" "}
-      {todo.createdAt.toLocaleTimeString()}
-    </p>
-  </div>
+                    {/* Todo Content - Title and Date */}
+                    <div className="flex-1 overflow-hidden">
+                      <p
+                        className={`font-medium text-base transition-colors ${
+                          todo.account.isCompleted
+                            ? "line-through text-muted-foreground"
+                            : "text-foreground"
+                        }`}
+                      >
+                        {todo.account.taskTitle}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Created: {new Date(todo.account.createdAt.toNumber() * 1000).toLocaleString()}
+                         Update: {new Date(todo.account.lastUpdate.toNumber() * 1000).toLocaleString()}
+                      </p>
+                    </div>
 
-  {/* Actions */}
-  <div className="flex items-center gap-3">
-    {/* Delete Button */}
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={() => deleteTodo(todo.id)}
-      className="text-destructive/80 hover:text-destructive transition-colors"
-      title="Delete Todo"
-    >
-      <Trash2 className="w-5 h-5" />
-    </Button>
+                    {/* Actions */}
+                    <div className="flex items-center gap-3">
+                      {/* Delete Button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteTodo(todo)}
+                        className="text-destructive/80 hover:text-destructive transition-colors"
+                        title="Delete Todo"
+                        disabled={isSubmitting}
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </Button>
 
-    {/* Status Icon */}
-    <div className="w-5 h-5 flex-shrink-0">
-      {todo.completed ? (
-        <CheckCircle2 className="w-full h-full text-accent" />
-      ) : (
-        <CircleDashed className="w-full h-full text-orange-500 animate-spin-slow" />
-      )}
-    </div>
-  </div>
-</div>
-
-
+                      {/* Status Icon */}
+                      <div className="w-5 h-5 flex-shrink-0">
+                        {todo.account.isCompleted ? (
+                          <CheckCircle2 className="w-full h-full text-accent" />
+                        ) : (
+                          <CircleDashed className="w-full h-full text-orange-500 animate-spin-slow" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 ))
               )}
             </CardContent>
@@ -230,8 +362,8 @@ const TodoApp = () => {
                 <div>
                   <h3 className="font-semibold text-primary mb-1">Decentralized Privacy</h3>
                   <p className="text-sm text-muted-foreground">
-                    This is not just a to-do list; it's a statement. Your tasks are stored securely on a decentralized network. 
-                    Your private key is the only way to access and modify your data. No central database, no data breaches. 
+                    This is not just a to-do list; it's a statement. Your tasks are stored securely on a decentralized network.
+                    Your private key is the only way to access and modify your data. No central database, no data breaches.
                     Just you and your data, on the blockchain.
                   </p>
                 </div>
