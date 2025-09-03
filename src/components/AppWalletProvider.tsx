@@ -22,7 +22,7 @@ import'@solana/wallet-adapter-react-ui/styles.css'
   return (
     <>
       <ConnectionProvider endpoint={endpoint}>
-        <WalletProvider  wallets={wallets}>
+        <WalletProvider  wallets={wallets} autoConnect>
             <WalletModalProvider>
          {children}
             </WalletModalProvider>

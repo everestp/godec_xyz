@@ -3,13 +3,17 @@ import App from './App.tsx'
 import './index.css'
 import AppWalletProvider from './components/AppWalletProvider.tsx';
 import {Provider} from 'react-redux'
-import { store } from './app/store/index.ts';
+// import { store } from './app/store/index.ts';
+import { DataContextProvider } from './context/DataContext.tsx';
 createRoot(document.getElementById("root")!).render(
+    <DataContextProvider>
     <AppWalletProvider>
-<Provider store={store}>
+
 
 <App />
-</Provider>
+
     </AppWalletProvider>
+
+    </DataContextProvider>
 
 );

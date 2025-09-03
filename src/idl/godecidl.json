@@ -1,4 +1,4 @@
-export default const IDL = {
+{
   "version": "0.1.0",
   "name": "godec_dapp",
   "constants": [
@@ -1149,3 +1149,9 @@ export default const IDL = {
     }
   ]
 }
+
+
+
+
+
+
