@@ -184,12 +184,12 @@
           "isSigner": true
         },
         {
-          "name": "poll",
+          "name": "counter",
           "isMut": true,
           "isSigner": false
         },
         {
-          "name": "counter",
+          "name": "poll",
           "isMut": true,
           "isSigner": false
         },
@@ -200,6 +200,10 @@
         }
       ],
       "args": [
+        {
+          "name": "pollId",
+          "type": "u64"
+        },
         {
           "name": "description",
           "type": "string"
@@ -889,6 +893,11 @@
             "type": "u64"
           },
           {
+            "name":"creator",
+             "type": "publicKey"
+            
+          },
+          {
             "name": "description",
             "type": "string"
           },
@@ -904,6 +913,7 @@
             "name": "candidates",
             "type": "u64"
           }
+          
         ]
       }
     },

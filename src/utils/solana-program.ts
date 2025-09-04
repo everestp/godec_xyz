@@ -1,13 +1,13 @@
 
 
-import { AnchorProvider, Program, utils, web3, BN } from '@project-serum/anchor';
+import { AnchorProvider, Program, utils, web3 } from '@project-serum/anchor';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import idl from '../idl/godecidl.json';
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
 import { useMemo } from 'react';
 import { SYSTEM_PROGRAM_ID } from '@coral-xyz/anchor/dist/cjs/native/system';
 import { useActionData } from 'react-router-dom';
-
+import { BN } from '@coral-xyz/anchor';
 
 const programID = new web3.PublicKey('73KCAwnfEwU7LPX7Ri2FXHvp1NZtCyRUc6EJVvm59oEs');
 
@@ -107,49 +107,13 @@ export const getWithdrawTransactionAddress = (creator: web3.PublicKey, cid: numb
 };
 
 // Returns the PDA for a specific poll.
-export const getPollAddress = (pollId: number): web3.PublicKey => {
-  const [pda] = web3.PublicKey.findProgramAddressSync(
-    [new BN(pollId).toBuffer('le', 8)],
-    programID
-  );
-  return pda;
-};
 
-// Returns the PDA for a global counter.
-export const getCounterAddress = (): web3.PublicKey => {
-  const [pda] = web3.PublicKey.findProgramAddressSync(
-    [utils.bytes.utf8.encode('counter')],
-    programID
-  );
-  return pda;
-};
 
-// Returns the PDA for the registrations account.
-export const getRegistrationAddress = (): web3.PublicKey => {
-  const [pda] = web3.PublicKey.findProgramAddressSync(
-    [utils.bytes.utf8.encode('registerations')],
-    programID
-  );
-  return pda;
-};
 
-// Returns the PDA for a specific candidate.
-export const getCandidateAddress = (pollId: number, candidateId: number): web3.PublicKey => {
-  const [pda] = web3.PublicKey.findProgramAddressSync(
-    [new BN(pollId).toBuffer('le', 8), new BN(candidateId).toBuffer('le', 8)],
-    programID
-  );
-  return pda;
-};
 
-// Returns the PDA for a voter in a specific poll.
-export const getVoterAddress = (pollId: number, user: web3.PublicKey): web3.PublicKey => {
-  const [pda] = web3.PublicKey.findProgramAddressSync(
-    [utils.bytes.utf8.encode('voter'), new BN(pollId).toBuffer('le', 8), user.toBuffer()],
-    programID
-  );
-  return pda;
-};
+
+
+
 
 
 
@@ -208,66 +172,53 @@ export const getPostAddress = (authority: PublicKey, title: string) => {
 
 
 
-export const initUser = async (name: string, avatar: string) => {
+// export const initUser = async (name: string, avatar: string) => {
 
-const program = useProgram()
-  if (!program || !wallet) throw new Error("Wallet or program not ready");
+// const program = useProgram()
+//   if (!program || !wallet) throw new Error("Wallet or program not ready");
 
-  const userAccount = getUserAddress(wallet.publicKey);
+//   const userAccount = getUserAddress(wallet.publicKey);
 
  
+// };
+
+ //Voting Dapp 
+ 
+
+export const getCounterAddress = () => {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("counter")],
+   programID // Replace with your actual program ID
+  )[0];
 };
 
-// export const createPostOnChain = async (title: string, content: string ,image:string) => {
-// const program = useProgram()
-//   if (!program || !wallet) throw new Error("Wallet or program not ready");
+export const getRegistrationAddress = () => {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("registerations")],
+   programID // Replace with your actual program ID
+  )[0];
+};
 
-//   const userPDA = getUserAddress(wallet.publicKey);
-//   const postPDA = getPostAddress(wallet.publicKey, title);
+export const getPollAddress = (pollId: number) => {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("poll"), new BN(pollId).toArrayLike(Buffer, "le", 8)],
+   programID // Replace with your actual program ID
+  )[0];
+};
 
-//   await program.methods
-//     .createPost(title, content ,image)
-//     .accounts({
-//       postAccount: postPDA,
-//       userAccount: userPDA,
-//       authority: wallet.publicKey,
-//       systemProgram:SystemProgram.programId
-//     })
-//     .rpc();
-// };
-// export const updatePostOnChain = async (title: string, content: string ,image:string) => {
-// const program = useProgram()
-//   const wallet = useWallet()
-//   if (!program || !wallet) throw new Error("Wallet or program not ready");
+export const getCandidateAddress = (pollId: number, candidateId: number) => {
+  return PublicKey.findProgramAddressSync(
+    [
+      new BN(pollId).toArrayLike(Buffer, "le", 8),
+      new BN(candidateId).toArrayLike(Buffer, "le", 8),
+    ],
+   programID // Replace with your actual program ID
+  )[0];
+};
 
-//   const userPDA = getUserAddress(wallet.publicKey);
-//   const postPDA = getPostAddress(wallet.publicKey, title);
-
-//   await program.methods
-//     .upadePost(content, image)
-//     .accounts({
-//       postAccount: postPDA,
-//       userAccount: userPDA,
-//       authority: wallet.publicKey,
-//       systemProgram:SystemProgram.programId
-//     })
-//     .rpc();
-// };
-// export const deletePostOnChain = async (title: string) => {
-// const program = useProgram()
-
-//   if (!program || !wallet) throw new Error("Wallet or program not ready");
-
-//   const userPDA = getUserAddress(wallet.publicKey);
-//   const postPDA = getPostAddress(wallet.publicKey, title);
-
-//   await program.methods
-//     .delete()
-//     .accounts({
-//       postAccount: postPDA,
-//       userAccount: userPDA,
-//       authority: wallet.publicKey,
-//       systemProgram:SystemProgram.programId
-//     })
-//     .rpc();
-// };
+export const getVoterAddress = (pollId: number, user: PublicKey) => {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("voter"), new BN(pollId).toArrayLike(Buffer, "le", 8), user.toBuffer()],
+   programID // Replace with your actual program ID
+  )[0];
+};
