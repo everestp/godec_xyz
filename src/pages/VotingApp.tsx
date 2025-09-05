@@ -5,7 +5,7 @@ import { ArrowLeft, Vote, Plus, Clock, Users, BarChart3, Eye, Badge } from "luci
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { BN } from "@coral-xyz/anchor";
+import { BN } from "bn.js";
 import { SystemProgram, PublicKey } from '@solana/web3.js';
 import { getCounterAddress, getPollAddress, getRegistrationAddress, getCandidateAddress, getVoterAddress, useProgram } from "@/utils/solana-program";
 import { Button } from "@/components/ui/button";

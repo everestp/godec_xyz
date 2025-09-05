@@ -1,4 +1,4 @@
-import { AnchorProvider, Program, web3 } from '@project-serum/anchor';
+import { AnchorProvider, Program, web3 } from '@coral-xyz/anchor';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import idl from '../idl/godecidl.json';
 import { PublicKey } from '@solana/web3.js';

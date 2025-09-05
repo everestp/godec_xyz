@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { BN } from "@coral-xyz/anchor";
+import { BN } from "bn.js";
 import { Connection, SystemProgram, PublicKey } from '@solana/web3.js';
 import { getCounterAddress, getPollAddress, getRegistrationAddress, useProgram } from "@/utils/solana-program";
 import { Button } from "@/components/ui/button";

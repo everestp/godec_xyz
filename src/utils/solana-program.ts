@@ -1,13 +1,13 @@
 
 
-import { AnchorProvider, Program, utils, web3 } from '@project-serum/anchor';
+import { AnchorProvider, Program, utils, web3 } from '@coral-xyz/anchor';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import idl from '../idl/godecidl.json';
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
 import { useMemo } from 'react';
 import { SYSTEM_PROGRAM_ID } from '@coral-xyz/anchor/dist/cjs/native/system';
 import { useActionData } from 'react-router-dom';
-import { BN } from '@coral-xyz/anchor';
+import { BN } from "bn.js";
 
 const programID = new web3.PublicKey('73KCAwnfEwU7LPX7Ri2FXHvp1NZtCyRUc6EJVvm59oEs');
 

@@ -2,7 +2,7 @@
 
 // import { Connection } from '@solana/web3.js'
 // import IDL from './idl/godecidl.json'
-// import { AnchorProvider, Program ,BN } from '@project-serum/anchor'
+// import { AnchorProvider, Program ,BN } from '@coral-xyz/anchor'
 // import { PublicKey ,LAMPORTS_PER_SOL } from '@solana/web3.js'
 
 //  export const PROGRAM_ID = new PublicKey("GZGMTga8By8XW6vUHq5FUET93PcU9HhhSUa2mimEwSY5")

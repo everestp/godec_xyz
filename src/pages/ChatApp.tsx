@@ -7,7 +7,9 @@ import { ArrowLeft, Send, Shield, Lock, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { Program, BN } from "@project-serum/anchor";
+
+import { BN } from "bn.js";
+
 import { getMessageAddress, getThreadAddress, useProgram } from "@/utils/solana-program";
 
 interface ThreadAccount {

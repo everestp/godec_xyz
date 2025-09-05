@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import {BN} from '@project-serum/anchor'
+import { BN } from "bn.js";
 import { SystemProgram ,LAMPORTS_PER_SOL } from "@solana/web3.js";
 import {useAnchorWallet ,useConnection} from '@solana/wallet-adapter-react'
 import bs58 from "bs58"
