@@ -121,7 +121,6 @@ const Index = () => {
       description: "Built by the community, for the community, on an open network."
     }
   ];
-const navigate = useNavigate()
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
