@@ -1,13 +1,12 @@
 
 
-import { AnchorProvider, Program, utils, web3 } from '@coral-xyz/anchor';
+import { AnchorProvider, Program, utils, web3 } from '@project-serum/anchor';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import idl from '../idl/godecidl.json';
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
 import { useMemo } from 'react';
-import { SYSTEM_PROGRAM_ID } from '@coral-xyz/anchor/dist/cjs/native/system';
-import { useActionData } from 'react-router-dom';
-import { BN } from "bn.js";
+import { Buffer } from 'buffer';
+import { BN } from '@coral-xyz/anchor';
 
 const programID = new web3.PublicKey('73KCAwnfEwU7LPX7Ri2FXHvp1NZtCyRUc6EJVvm59oEs');
 
@@ -221,4 +220,119 @@ export const getVoterAddress = (pollId: number, user: PublicKey) => {
     [Buffer.from("voter"), new BN(pollId).toArrayLike(Buffer, "le", 8), user.toBuffer()],
    programID // Replace with your actual program ID
   )[0];
+};
+
+
+//crowdfunding
+
+// // Returns the PDA for a withdrawal transaction.
+// export const getWithdrawTransactionAddress = (creator: PublicKey, cid: number, withdrawalCount: number): PublicKey => {
+//   const [pda] = PublicKey.findProgramAddressSync(
+//     [
+//       anchor.utils.bytes.utf8.encode('withdraw'),
+//       creator.toBuffer(),
+//       new BN(cid).toBuffer('le', 8),
+//       new BN(withdrawalCount).toBuffer('le', 8),
+//     ],
+//     programID
+//   );
+//   return pda;
+// };
+
+export const getProgramState = async (program: Program<any>) => {
+  return await program.account.programState.fetch(getProgramStateAddress());
+};
+
+export const getCampaign = async (program: Program<any>, cid: number) => {
+    return await program.account.campaign.fetch(getCampaignAddress(cid));
+};
+
+export const getAllCampaigns = async (program: Program<any>) => {
+  return await program.account.campaign.all();
+};
+
+export const createCampaign = async (
+  program: Program<any>,
+  title: string,
+  description: string,
+  imageUrl: string,
+  goal: number,
+  wallet: any,
+  programState: any
+) => {
+  const goalInLamports = new BN(goal);
+  const nextCampaignId = new BN(programState.campaignCount + 1);
+  const campaignPda = getCampaignAddress(nextCampaignId.toNumber());
+
+  return await program.methods
+    .createCampaign(title, description, imageUrl, goalInLamports)
+    .accounts({
+      programState: getProgramStateAddress(),
+      campaign: campaignPda,
+      creator: wallet.publicKey,
+      systemProgram: SystemProgram.programId,
+    })
+    .rpc();
+};
+
+export const donateToCampaign = async (
+  program: Program<any>,
+  cid: number,
+  amount: number,
+  wallet: any,
+) => {
+    const amountInLamports = new BN(amount);
+    const campaign = await getCampaign(program, cid);
+    const transactionPda = getDonorTransactionAddress(wallet.publicKey, cid, campaign.donors.toNumber() + 1);
+
+    return await program.methods
+      .donate(new BN(cid), amountInLamports)
+      .accounts({
+        campaign: getCampaignAddress(cid),
+        transaction: transactionPda,
+        donor: wallet.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+};
+
+export const withdrawFromCampaign = async (
+  program: Program<any>,
+  cid: number,
+  wallet: any,
+) => {
+    const campaign = await getCampaign(program, cid);
+    const transactionPda = getWithdrawTransactionAddress(wallet.publicKey, cid, campaign.withdrawals.toNumber() + 1);
+    
+    // This is a placeholder as the provided Rust code has a platform address check
+    // and a transaction account we can't fully implement without more info.
+    // In a real scenario, you'd need the platform account's PDA or public key.
+    const platformAddress = new PublicKey(wallet.pui); // REPLACE WITH YOUR PLATFORM ADDRESS
+
+    return await program.methods
+      .withdraw(new BN(cid))
+      .accounts({
+        campaign: getCampaignAddress(cid),
+        transaction: transactionPda,
+        creator: wallet.publicKey,
+        systemProgram: SystemProgram.programId,
+        programState: getProgramStateAddress(),
+        platformAddress,
+      })
+      .rpc();
+};
+
+export const deleteCampaign = async (
+    program: Program<any>,
+    cid: number,
+    wallet: any,
+) => {
+    return await program.methods
+        .deleteCampaign(new BN(cid))
+        .accounts({
+            campaign: getCampaignAddress(cid),
+            creator: wallet.publicKey,
+            systemProgram: SystemProgram.programId,
+        })
+        .rpc();
 };
