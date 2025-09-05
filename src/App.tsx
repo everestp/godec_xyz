@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Routes, Route, HashRouter } from "react-router-dom";
+import { Routes, Route, HashRouter, BrowserRouter } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import TodoApp from "./pages/TodoApp";
@@ -18,6 +18,7 @@ import LotteryApp from "./pages/LotteryApp";
 import LearnMore from "./pages/LearnMore";
 import Navbar from "./components/Navbar";
 import VotingApp from "./pages/VotingApp";
+import Dashboard from "./pages/DashBoard";
 
 const queryClient = new QueryClient();
 
@@ -27,9 +28,10 @@ const App = () => (
       <Toaster />
       <Sonner />
           <Navbar/>
-      <HashRouter>
+      <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/todo" element={<TodoApp />} />
           <Route path="/notes" element={<NotesApp />} />
           <Route path="/crowdfunding" element={<CrowdfundingApp />} />
@@ -46,7 +48,7 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </HashRouter>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );

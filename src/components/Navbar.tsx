@@ -1,139 +1,144 @@
-import React, { useState, useEffect } from "react";
-import { Sun, Moon, Wallet, Wallet2 } from "lucide-react"; // Optional: Swap for your icon set
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Wallet,
+  Menu,
+  X,
+  Home,
+  BarChart3,
+  ArrowLeftRight,
+  ShoppingCart,
+  Megaphone,
+  LeafyGreen,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import'@solana/wallet-adapter-react-ui/styles.css'
+
 const Navbar = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window !== "undefined") {
-      const savedTheme = localStorage.getItem("theme");
-      if (savedTheme) {
-        return savedTheme === "dark";
-      }
-      return window.matchMedia("(prefers-color-scheme: dark)").matches;
-    }
-    return true;
-  });
+  const [isWalletConnected, setIsWalletConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState("");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [currentPath, setCurrentPath] = useState("/");
 
   useEffect(() => {
-    const htmlElement = document.documentElement;
-    if (isDarkMode) {
-      htmlElement.classList.add("dark");
-      htmlElement.classList.remove("light");
-      localStorage.setItem("theme", "dark");
-    } else {
-      htmlElement.classList.remove("dark");
-      htmlElement.classList.add("light");
-      localStorage.setItem("theme", "light");
-    }
-  }, [isDarkMode]);
+    setCurrentPath(window.location.pathname);
+  }, []);
 
   const handleWalletConnect = () => {
-    alert("Wallet connection initiated!");
+    if (!isWalletConnected) {
+      // Mock wallet connection
+      setWalletAddress("0x742d...8f2e");
+      setIsWalletConnected(true);
+    } else {
+      setWalletAddress("");
+      setIsWalletConnected(false);
+    }
   };
 
+  const navItems = [
+    { href: "/", icon: Home, label: "Home" },
+    { href: "/dashboard", icon: BarChart3, label: "Dashboard" },
+    { href: "/learn-more", icon: LeafyGreen, label: "About" },
+    // { href: "/swap", icon: ArrowLeftRight, label: "Swap" },
+    // { href: "/marketplace", icon: ShoppingCart, label: "E-Commerce" },
+    // { href: "/promotions", icon: Megaphone, label: "Promotions" },
+  ];
+
   return (
-    <header className="  z-50 bg-card/70 border-b border-border backdrop-blur-md shadow-sm mb-1">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ">
-        <div className="flex justify-between items-center h-16">
+    <nav className="bg-card/80 backdrop-blur-md border-b border-border sticky top-0 z-50">
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
-         <a href="#" className="flex items-center space-x-1">
-  <span className="text-2xl font-extrabold text-primary">
-    GoDec
-  </span>
-  <span className="text-xl font-bold  text-primary">
-    .xyz
-  </span>
-</a>
+          <a href="/" className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-bitcoin rounded-lg flex items-center justify-center">
+              <Wallet className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <span className="text-xl font-bold gradient-bitcoin bg-clip-text text-transparent">
+              godec.xyz
+            </span>
+          </a>
 
           {/* Desktop Navigation */}
-          <nav className="hidden sm:flex items-center space-x-6">
-            <a href="#" className="nav-link">Home</a>
-            <a href="#" className="nav-link">Explorer</a>
-            <a href="#" className="nav-link">Docs</a>
-            <a href="#" className="nav-link">Community</a>
-          </nav>
-
-          {/* Right Side */}
-          <div className="hidden sm:flex items-center space-x-4">
-            {/* Theme Toggle */}
-            <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className="p-2 rounded-full bg-muted hover:bg-muted/70 transition-colors"
-              aria-label="Toggle dark mode"
-            >
-              {isDarkMode ? (
-                <Sun className="w-5 h-5 text-yellow-400" />
-              ) : (
-                <Moon className="w-5 h-5 text-blue-500" />
-              )}
-            </button>
-
-            {/* Connect Wallet */}
-
-           
-          
-<WalletMultiButton style={{background :'orange', color:"white" }} />
-          </div>
-          {/* Hamburger for mobile */}
-          <div className="sm:hidden">
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring transition"
-              aria-label="Toggle menu"
-            >
-              <svg
-                className={`${isMenuOpen ? "hidden" : "block"} h-6 w-6`}
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-              <svg
-                className={`${isMenuOpen ? "block" : "hidden"} h-6 w-6`}
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className="sm:hidden bg-card/90 backdrop-blur-md transition-all duration-200 shadow-md">
-          <div className="px-4 pt-4 pb-3 space-y-1">
-            <a href="#" className="mobile-link">Home</a>
-            <a href="#" className="mobile-link">Explorer</a>
-            <a href="#" className="mobile-link">Docs</a>
-            <a href="#" className="mobile-link">Community</a>
-
-            <hr className="my-2 border-border" />
-
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Dark Mode</span>
-              <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className="p-2 rounded-full bg-muted hover:bg-muted/70 transition-colors"
-              >
-                {isDarkMode ? (
-                  <Sun className="w-5 h-5 text-yellow-400" />
-                ) : (
-                  <Moon className="w-5 h-5 text-blue-500" />
+          <div className="hidden md:flex items-center space-x-8">
+            {navItems.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors",
+                  currentPath === item.href
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/10"
                 )}
-              </button>
-            </div>
-<WalletMultiButton style={{background :'orange', color:"white" }} />
+              >
+                <item.icon className="w-4 h-4" />
+                <span>{item.label}</span>
+              </a>
+            ))}
+          </div>
+
+          {/* Wallet Connection */}
+          <div className="flex items-center space-x-4">
+           <WalletMultiButton style={{background :'orange', color:"white" }}/>
+
+            {/* Mobile Menu Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
+            </Button>
           </div>
         </div>
-      )}
-    </header>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-border mt-2 pt-4 pb-4 space-y-2">
+            {navItems.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors w-full",
+                  currentPath === item.href
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/10"
+                )}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <item.icon className="w-4 h-4" />
+                <span>{item.label}</span>
+              </a>
+            ))}
+
+            <Button
+              onClick={handleWalletConnect}
+              variant={isWalletConnected ? "outline" : "default"}
+              className={cn("w-full mt-4", isWalletConnected ? "" : "bitcoin-glow")}
+            >
+              <Wallet className="w-4 h-4 mr-2" />
+              {isWalletConnected ? (
+                <div className="flex items-center space-x-2">
+                  <Badge variant="secondary" className="text-xs">
+                    {walletAddress}
+                  </Badge>
+                  <span>Disconnect</span>
+                </div>
+              ) : (
+                "Connect Wallet"
+              )}
+            </Button>
+          </div>
+        )}
+      </div>
+    </nav>
   );
 };
 
