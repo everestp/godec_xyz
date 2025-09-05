@@ -164,10 +164,10 @@ console.log("formated candidate and poll",polls , candidates)
 
       await program.methods
         .createPoll(
-          new BN(nextPollId),
+          new BN(nextPollId ?? 0),
           newPoll.description,
           new BN(Date.now() / 1000),
-          new BN(deadlineTimestamp)
+          new BN(deadlineTimestamp ?? 0)
         )
         .accounts({
           user: wallet.publicKey,
@@ -199,7 +199,7 @@ console.log("formated candidate and poll",polls , candidates)
       const candidatePda = getCandidateAddress(selectedPoll.id, nextCandidateId);
 
       await program.methods
-        .registerCandidate(new BN(selectedPoll.id), newCandidateName)
+        .registerCandidate(new BN(selectedPoll.id ?? 0), newCandidateName)
         .accounts({
           user: wallet.publicKey,
           poll: pollPda,
@@ -228,7 +228,7 @@ console.log("formated candidate and poll",polls , candidates)
       const voterPda = getVoterAddress(selectedPoll.id, wallet.publicKey);
 
       await program.methods
-        .vote(new BN(selectedPoll.id), new BN(cid))
+        .vote(new BN(selectedPoll.id ?? 0), new BN(cid))
         .accounts({
           user: wallet.publicKey,
           poll: pollPda,
