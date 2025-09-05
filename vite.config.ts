@@ -11,7 +11,6 @@ export default defineConfig(({ mode }) => ({
     port: 5173,
   },
   plugins: [
-      nodePolyfills({}),
     react(),
     mode === 'development' &&
     componentTagger(),
