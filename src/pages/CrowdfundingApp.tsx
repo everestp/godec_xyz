@@ -1,129 +1,147 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Target, Users, Clock, Bitcoin, Plus, Wallet, Eye, Search } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { useEffect, useState, useMemo } from "react";
+import * as anchor from "@coral-xyz/anchor";
+import { Program } from "@coral-xyz/anchor";
+import { PublicKey } from "@solana/web3.js";
 
-interface Campaign {
-  id: number;
-  title: string;
-  description: string;
-  goal: number;
-  raised: number;
-  contributors: number;
-  daysLeft: number;
-  category: string;
-  creator: string;
-  image: string;
-  deadline: Date;
-  isActive: boolean;
-  contributorsList: { address: string; amount: number; timestamp: Date }[];
-  isGoalReached: boolean;
-  hasWithdrawn: boolean;
-}
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/components/ui/use-toast";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  ArrowLeft,
+  Search,
+  Plus,
+  Bitcoin,
+  Users,
+  Clock,
+  Target,
+  Wallet,
+  Eye,
+  Trash2,
+} from "lucide-react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { createCampaign, deleteCampaign, donateToCampaign, getProgramStateAddress, useProgram, withdrawFromCampaign } from "@/utils/solana-program";
+
 
 const CrowdfundingApp = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
+
+  const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [programState, setProgramState] = useState(null);
   const [contributionAmount, setContributionAmount] = useState("");
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
-  const [userWallet] = useState("0x1234...5678"); // Mock wallet address
-  const [filter, setFilter] = useState<"all" | "active" | "funded" | "expired">("all");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newCampaign, setNewCampaign] = useState({
     title: "",
     description: "",
     goal: "",
-    deadline: "",
-    category: "",
-    image: ""
+    imageUrl: ""
   });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filter, setFilter] = useState("all");
+const program = useProgram()
+const wallet = useWallet()
 
-  const [campaigns, setCampaigns] = useState<Campaign[]>([
-    {
-      id: 1,
-      title: "Decentralized Education Platform",
-      description: "Building the future of peer-to-peer learning with blockchain technology. This platform will enable students to learn directly from experts while earning tokens for their progress and contributions.",
-      raised: 45.7,
-      goal: 100,
-      contributors: 234,
-      daysLeft: 15,
-      category: "Education",
-      creator: "0xabc...def",
-      image: "/placeholder.svg",
-      deadline: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
-      isActive: true,
-      contributorsList: [
-        { address: "0x789...123", amount: 5.5, timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) },
-        { address: "0x456...789", amount: 10.2, timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) },
-        { address: "0x123...456", amount: 3.8, timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000) }
-      ],
-      isGoalReached: false,
-      hasWithdrawn: false
-    },
-    {
-      id: 2,
-      title: "Privacy-First Social Network",
-      description: "A social platform where users own their data completely. Built on decentralized infrastructure with end-to-end encryption and token-based incentives for quality content creation.",
-      raised: 150.3,
-      goal: 150,
-      contributors: 456,
-      daysLeft: 8,
-      category: "Technology",
-      creator: "0x123...456",
-      image: "/placeholder.svg",
-      deadline: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000),
-      isActive: true,
-      contributorsList: [
-        { address: "0x789...123", amount: 25.0, timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) },
-        { address: "0x456...789", amount: 50.0, timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
-        { address: "0x111...222", amount: 15.5, timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) }
-      ],
-      isGoalReached: true,
-      hasWithdrawn: false
-    },
-    {
-      id: 3,
-      title: "Green Mining Initiative",
-      description: "Sustainable cryptocurrency mining using 100% renewable energy sources. Building solar-powered mining farms that reduce environmental impact while maintaining profitability.",
-      raised: 23.1,
-      goal: 75,
-      contributors: 89,
-      daysLeft: -2,
-      category: "Environment",
-      creator: "0x789...abc",
-      image: "/placeholder.svg",
-      deadline: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      isActive: false,
-      contributorsList: [
-        { address: "0x333...444", amount: 8.1, timestamp: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) },
-        { address: "0x555...666", amount: 12.5, timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-      ],
-      isGoalReached: false,
-      hasWithdrawn: false
+  const fetchCampaigns = async () => {
+    if (!program) return;
+    setLoading(true);
+    try {
+      const allCampaigns = await  program.account.campaign.all();;
+      const programState = await program.account.programState.fetch(getProgramStateAddress());
+      setCampaigns(allCampaigns.map(c => ({
+          ...c.account,
+          publicKey: c.publicKey,
+          isGoalReached: c.account.amountRaised.toNumber() >= c.account.goal.toNumber(),
+      })));
+      setProgramState(programState);
+    } catch (error) {
+      toast({
+        title: "Error fetching data",
+        description: "Failed to fetch campaigns from the blockchain.",
+        variant: "destructive",
+      });
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
-  const filteredCampaigns = campaigns.filter(campaign => {
-    const matchesSearch = campaign.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         campaign.creator.toLowerCase().includes(searchTerm.toLowerCase());
+  // useEffect(() => {
+  //   if (program) {
+  //     fetchCampaigns();
+  //   }
+  // }, []);
+
+  const handleCreateCampaign = async (e) => {
+    e.preventDefault();
+    if (!wallet || !wallet.publicKey) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to create a campaign.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newCampaign.title || !newCampaign.description || !newCampaign.goal || !newCampaign.imageUrl) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
     
-    if (filter === "active") return campaign.isActive && matchesSearch;
-    if (filter === "funded") return campaign.isGoalReached && matchesSearch;
-    if (filter === "expired") return !campaign.isActive && matchesSearch;
-    return matchesSearch;
-  });
+    setLoading(true);
+    try {
+      await createCampaign(
+        program,
+        newCampaign.title,
+        newCampaign.description,
+        newCampaign.imageUrl,
+        parseFloat(newCampaign.goal) * anchor.web3.LAMPORTS_PER_SOL,
+        wallet,
+        programState
+      );
+      toast({
+        title: "Campaign Created! 🚀",
+        description: "Your campaign has been created successfully",
+      });
+      await fetchCampaigns();
+      setShowCreateForm(false);
+    } catch (error) {
+      toast({
+        title: "Transaction Failed",
+        description: `Error: ${error.message}`,
+        variant: "destructive"
+      });
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleContribute = (campaignId: number) => {
+  const handleDonate = async (campaign) => {
+    if (!wallet || !wallet.publicKey) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to contribute.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!contributionAmount || parseFloat(contributionAmount) <= 0) {
       toast({
         title: "Invalid Amount",
@@ -133,177 +151,151 @@ const CrowdfundingApp = () => {
       return;
     }
 
-    const campaign = campaigns.find(c => c.id === campaignId);
-    if (!campaign) return;
-
-    if (!campaign.isActive) {
+    setLoading(true);
+    try {
+      await donateToCampaign(program, campaign.cid.toNumber(), parseFloat(contributionAmount) * anchor.web3.LAMPORTS_PER_SOL, wallet);
       toast({
-        title: "Campaign Ended",
-        description: "This campaign is no longer active",
+        title: "Contribution Successful! 🎉",
+        description: `You've contributed ${contributionAmount} SOL to the campaign`,
+      });
+      await fetchCampaigns();
+      setSelectedCampaign(null); // Return to main view after donation
+    } catch (error) {
+      toast({
+        title: "Transaction Failed",
+        description: `Error: ${error.message}`,
         variant: "destructive"
+      });
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleWithdraw = async (campaign) => {
+    if (!wallet || !wallet.publicKey) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to withdraw.",
+        variant: "destructive",
       });
       return;
     }
-
-    const amount = parseFloat(contributionAmount);
-    const updatedCampaigns = campaigns.map(c => {
-      if (c.id === campaignId) {
-        const newRaised = c.raised + amount;
-        const newContributor = {
-          address: userWallet,
-          amount,
-          timestamp: new Date()
-        };
-        
-        const updatedCampaign = {
-          ...c,
-          raised: newRaised,
-          contributors: c.contributors + 1,
-          contributorsList: [newContributor, ...c.contributorsList],
-          isGoalReached: newRaised >= c.goal
-        };
-        // Update the selected campaign state to reflect changes
-        setSelectedCampaign(updatedCampaign);
-        return updatedCampaign;
-      }
-      return c;
-    });
-
-    setCampaigns(updatedCampaigns);
     
-    toast({
-      title: "Contribution Successful! 🎉",
-      description: `You've contributed ${contributionAmount} BTC to the campaign`,
-    });
-    setContributionAmount("");
-  };
-
-  const handleWithdraw = (campaignId: number) => {
-    const campaign = campaigns.find(c => c.id === campaignId);
-    if (!campaign) return;
-
-    if (campaign.creator !== userWallet) {
+    // Check if the user is the creator before allowing withdrawal
+    if (campaign.creator.toString() !== wallet.publicKey.toString()) {
       toast({
         title: "Unauthorized",
-        description: "Only the campaign creator can withdraw funds",
-        variant: "destructive"
+        description: "Only the campaign creator can withdraw funds.",
+        variant: "destructive",
       });
       return;
     }
-
-    if (!campaign.isGoalReached) {
+    
+    setLoading(true);
+    try {
+      await withdrawFromCampaign(program, campaign.cid.toNumber(), wallet);
       toast({
-        title: "Goal Not Reached",
-        description: "Cannot withdraw funds until the goal is reached",
-        variant: "destructive"
+        title: "Withdrawal Successful! 💰",
+        description: `Funds have been transferred to your wallet`,
       });
-      return;
-    }
-
-    if (campaign.isActive) {
+      await fetchCampaigns();
+      setSelectedCampaign(null);
+    } catch (error) {
       toast({
-        title: "Campaign Still Active",
-        description: "Cannot withdraw funds while campaign is still active",
+        title: "Transaction Failed",
+        description: `Error: ${error.message}`,
         variant: "destructive"
       });
-      return;
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleDeleteCampaign = async (campaign) => {
+    if (!wallet || !wallet.publicKey) {
+        toast({
+            title: "Wallet Not Connected",
+            description: "Please connect your wallet.",
+            variant: "destructive",
+        });
+        return;
     }
 
-    if (campaign.hasWithdrawn) {
-      toast({
-        title: "Already Withdrawn",
-        description: "Funds have already been withdrawn",
-        variant: "destructive"
-      });
-      return;
+    if (campaign.creator.toString() !== wallet.publicKey.toString()) {
+        toast({
+            title: "Unauthorized",
+            description: "Only the creator can delete this campaign.",
+            variant: "destructive",
+        });
+        return;
     }
-
-    setCampaigns(prev => prev.map(c => 
-      c.id === campaignId ? { ...c, hasWithdrawn: true } : c
-    ));
-    setSelectedCampaign(prev => prev ? { ...prev, hasWithdrawn: true } : prev);
-
-    toast({
-      title: "Withdrawal Successful! 💰",
-      description: `${campaign.raised} BTC has been transferred to your wallet`,
-    });
+    
+    setLoading(true);
+    try {
+        await deleteCampaign(program, campaign.cid.toNumber(), wallet);
+        toast({
+            title: "Campaign Deleted",
+            description: "The campaign has been successfully deleted.",
+        });
+        await fetchCampaigns();
+        setSelectedCampaign(null);
+    } catch (error) {
+        toast({
+            title: "Transaction Failed",
+            description: `Error: ${error.message}`,
+            variant: "destructive"
+        });
+        console.error(error);
+    } finally {
+        setLoading(false);
+    }
   };
 
-  const createCampaign = () => {
-    if (!newCampaign.title || !newCampaign.description || !newCampaign.goal || !newCampaign.deadline) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields",
-        variant: "destructive"
-      });
-      return;
-    }
+  const filteredCampaigns = useMemo(() => {
+    if (!campaigns) return [];
+    return campaigns.filter(campaign => {
+      const matchesSearch = campaign.title.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const isActive = campaign.active;
+      const isGoalReached = campaign.amountRaised.toNumber() >= campaign.goal.toNumber();
 
-    const goal = parseFloat(newCampaign.goal);
-    if (goal <= 0) {
-      toast({
-        title: "Invalid Goal",
-        description: "Please enter a valid funding goal",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const deadline = new Date(newCampaign.deadline);
-    if (deadline <= new Date()) {
-      toast({
-        title: "Invalid Deadline",
-        description: "Deadline must be in the future",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const daysLeft = Math.ceil((deadline.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-
-    const campaign: Campaign = {
-      id: campaigns.length + 1,
-      title: newCampaign.title,
-      description: newCampaign.description,
-      goal,
-      raised: 0,
-      contributors: 0,
-      daysLeft,
-      category: newCampaign.category || "Other",
-      creator: userWallet,
-      image: newCampaign.image || "https://placehold.co/600x400/121212/e0e0e0?text=Campaign+Image",
-      deadline,
-      isActive: true,
-      contributorsList: [],
-      isGoalReached: false,
-      hasWithdrawn: false
-    };
-
-    setCampaigns(prev => [campaign, ...prev]);
-    setNewCampaign({
-      title: "",
-      description: "",
-      goal: "",
-      deadline: "",
-      category: "",
-      image: ""
+      if (filter === "active") return isActive && !isGoalReached && matchesSearch;
+      if (filter === "funded") return isGoalReached && matchesSearch;
+      if (filter === "expired") return !isActive && matchesSearch;
+      return matchesSearch;
     });
-    setShowCreateForm(false);
+  }, [campaigns, filter, searchTerm]);
 
-    toast({
-      title: "Campaign Created! 🚀",
-      description: "Your campaign has been created successfully",
-    });
+  if (false) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 border-4 border-t-4 border-primary rounded-full animate-spin"></div>
+          <p className="text-muted-foreground">Loading campaigns from the blockchain...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const getStatusBadge = (campaign) => {
+    if (!campaign.active) return { text: "Expired", variant: "secondary" };
+    if (campaign.amountRaised.toNumber() >= campaign.goal.toNumber()) return { text: "Funded", variant: "default" };
+    return { text: "Active", variant: "outline" };
   };
 
-  const getStatusBadge = (campaign: Campaign) => {
-    if (!campaign.isActive && campaign.isGoalReached) return { text: "Funded", variant: "default" as const };
-    if (!campaign.isActive && !campaign.isGoalReached) return { text: "Expired", variant: "secondary" as const };
-    if (campaign.isGoalReached) return { text: "Goal Reached", variant: "default" as const };
-    return { text: "Active", variant: "outline" as const };
+  const getProgressValue = (campaign) => {
+      if (campaign.goal.isZero()) return 0;
+      return Math.min(100, (campaign.amountRaised.toNumber() / campaign.goal.toNumber()) * 100);
   };
 
-  // Conditional rendering for the single campaign details view
+  const getRemainingAmount = (campaign) => {
+    const goal = campaign.goal.toNumber();
+    const raised = campaign.amountRaised.toNumber();
+    return Math.max(0, goal - raised) / 10**9;
+  }
+
   if (selectedCampaign) {
     const status = getStatusBadge(selectedCampaign);
     return (
@@ -327,7 +319,6 @@ const CrowdfundingApp = () => {
                 {selectedCampaign.title}
                 <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
                   <Badge variant={status.variant}>{status.text}</Badge>
-                  <Badge variant="outline">{selectedCampaign.category}</Badge>
                 </div>
               </CardTitle>
             </CardHeader>
@@ -335,7 +326,7 @@ const CrowdfundingApp = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <img 
-                    src={selectedCampaign.image} 
+                    src={selectedCampaign.imageUrl} 
                     alt={selectedCampaign.title}
                     className="w-full h-48 object-cover rounded-lg"
                   />
@@ -343,8 +334,7 @@ const CrowdfundingApp = () => {
                   <p className="text-muted-foreground">{selectedCampaign.description}</p>
                   
                   <div className="text-sm space-y-1">
-                    <p><span className="font-medium">Creator:</span> {selectedCampaign.creator}</p>
-                    <p><span className="font-medium">Deadline:</span> {selectedCampaign.deadline.toLocaleDateString()}</p>
+                    <p><span className="font-medium">Creator:</span> {selectedCampaign.creator.toBase58()}</p>
                   </div>
                 </div>
                 
@@ -353,16 +343,16 @@ const CrowdfundingApp = () => {
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Progress</span>
                       <span className="font-semibold">
-                        {selectedCampaign.raised} / {selectedCampaign.goal} BTC
+                        {(selectedCampaign.amountRaised.toNumber() / 10**9).toFixed(2)} / {(selectedCampaign.goal.toNumber() / 10**9).toFixed(2)} SOL
                       </span>
                     </div>
                     <Progress 
-                      value={(selectedCampaign.raised / selectedCampaign.goal) * 100} 
+                      value={getProgressValue(selectedCampaign)}
                       className="h-3"
                     />
                     <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>{Math.round((selectedCampaign.raised / selectedCampaign.goal) * 100)}% funded</span>
-                      <span>{Math.max(0, selectedCampaign.goal - selectedCampaign.raised).toFixed(1)} BTC to go</span>
+                      <span>{Math.round(getProgressValue(selectedCampaign))}% funded</span>
+                      <span>{getRemainingAmount(selectedCampaign).toFixed(2)} SOL to go</span>
                     </div>
                   </div>
 
@@ -370,33 +360,44 @@ const CrowdfundingApp = () => {
                     <div className="space-y-1">
                       <div className="flex items-center justify-center gap-1">
                         <Bitcoin className="w-4 h-4 text-bitcoin-orange" />
-                        <span className="text-lg font-semibold">{selectedCampaign.raised}</span>
+                        <span className="text-lg font-semibold">{(selectedCampaign.amountRaised.toNumber() / 10**9).toFixed(2)}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">BTC Raised</p>
+                      <p className="text-xs text-muted-foreground">SOL Raised</p>
                     </div>
                     
                     <div className="space-y-1">
                       <div className="flex items-center justify-center gap-1">
                         <Users className="w-4 h-4 text-primary" />
-                        <span className="text-lg font-semibold">{selectedCampaign.contributors}</span>
+                        <span className="text-lg font-semibold">{selectedCampaign.donors.toNumber()}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">Contributors</p>
+                      <p className="text-xs text-muted-foreground">Donors</p>
                     </div>
                     
                     <div className="space-y-1">
                       <div className="flex items-center justify-center gap-1">
                         <Clock className="w-4 h-4 text-secondary" />
-                        <span className="text-lg font-semibold">{selectedCampaign.daysLeft}</span>
+                        <span className="text-lg font-semibold">{selectedCampaign.active ? "Active" : "Expired"}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">Days {selectedCampaign.daysLeft > 0 ? 'Left' : 'Ago'}</p>
+                      <p className="text-xs text-muted-foreground">Status</p>
                     </div>
                   </div>
+                    
+                  {wallet && selectedCampaign.creator.toBase58() === wallet.publicKey.toBase58() && (
+                    <Button
+                      onClick={() => handleDeleteCampaign(selectedCampaign)}
+                      className="w-full bg-red-500 hover:bg-red-600 text-white"
+                      disabled={!selectedCampaign.active}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Deactivate Campaign
+                    </Button>
+                  )}
 
-                  {selectedCampaign.isActive && (
+                  {wallet && selectedCampaign.active && (
                     <div className="flex flex-col sm:flex-row gap-3">
                       <Input
                         type="number"
-                        placeholder="Amount in BTC"
+                        placeholder="Amount in SOL"
                         value={contributionAmount}
                         onChange={(e) => setContributionAmount(e.target.value)}
                         className="flex-1"
@@ -404,7 +405,7 @@ const CrowdfundingApp = () => {
                         min="0"
                       />
                       <Button 
-                        onClick={() => handleContribute(selectedCampaign.id)}
+                        onClick={() => handleDonate(selectedCampaign)}
                         className="w-full sm:w-auto px-6"
                       >
                         <Target className="w-4 h-4 mr-2" />
@@ -413,50 +414,18 @@ const CrowdfundingApp = () => {
                     </div>
                   )}
 
-                  {selectedCampaign.creator === userWallet && 
-                   selectedCampaign.isGoalReached && 
-                   !selectedCampaign.isActive && 
-                   !selectedCampaign.hasWithdrawn && (
+                  {wallet && selectedCampaign.creator.toBase58() === wallet.publicKey.toBase58() && 
+                   !selectedCampaign.active && (
                     <Button
-                      onClick={() => handleWithdraw(selectedCampaign.id)}
+                      onClick={() => handleWithdraw(selectedCampaign)}
                       className="w-full bg-accent hover:bg-accent/90"
+                      disabled={selectedCampaign.withdrawals.toNumber() > 0}
                     >
                       <Wallet className="w-4 h-4 mr-2" />
-                      Withdraw {selectedCampaign.raised} BTC
+                      Withdraw {(selectedCampaign.amountRaised.toNumber() / 10**9).toFixed(2)} SOL
                     </Button>
                   )}
-
-                  {selectedCampaign.hasWithdrawn && (
-                    <div className="bg-accent/10 p-3 rounded-lg">
-                      <p className="text-accent text-sm font-medium">
-                        ✅ Funds have been withdrawn by the creator
-                      </p>
-                    </div>
-                  )}
                 </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h4 className="font-semibold">Contributors ({selectedCampaign.contributorsList.length})</h4>
-                {selectedCampaign.contributorsList.length > 0 ? (
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {selectedCampaign.contributorsList.map((contributor, index) => (
-                      <div key={index} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-2 bg-muted/50 rounded">
-                        <span className="text-sm font-mono">{contributor.address}</span>
-                        <div className="text-right mt-2 sm:mt-0">
-                          <div className="text-sm font-medium">{contributor.amount} BTC</div>
-                          <div className="text-xs text-muted-foreground">
-                            {contributor.timestamp.toLocaleDateString()}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-sm">No contributions yet</p>
-                )}
               </div>
             </CardContent>
           </Card>
@@ -465,7 +434,6 @@ const CrowdfundingApp = () => {
     );
   }
 
-  // Conditional rendering for the create campaign form
   if (showCreateForm) {
     return (
       <div className="min-h-screen bg-background text-foreground p-6 md:p-10">
@@ -487,76 +455,55 @@ const CrowdfundingApp = () => {
               <CardTitle>Create New Campaign</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="title">Campaign Title *</Label>
-                <Input
-                  id="title"
-                  placeholder="Enter campaign title..."
-                  value={newCampaign.title}
-                  onChange={(e) => setNewCampaign(prev => ({ ...prev, title: e.target.value }))}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description *</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Describe your campaign..."
-                  value={newCampaign.description}
-                  onChange={(e) => setNewCampaign(prev => ({ ...prev, description: e.target.value }))}
-                  rows={4}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <form onSubmit={handleCreateCampaign} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="goal">Funding Goal (BTC) *</Label>
+                  <Label htmlFor="title">Campaign Title *</Label>
+                  <Input
+                    id="title"
+                    placeholder="Enter campaign title..."
+                    value={newCampaign.title}
+                    onChange={(e) => setNewCampaign(prev => ({ ...prev, title: e.target.value }))}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description *</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Describe your campaign..."
+                    value={newCampaign.description}
+                    onChange={(e) => setNewCampaign(prev => ({ ...prev, description: e.target.value }))}
+                    rows={4}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="goal">Funding Goal (SOL) *</Label>
                   <Input
                     id="goal"
                     type="number"
                     placeholder="100"
                     value={newCampaign.goal}
                     onChange={(e) => setNewCampaign(prev => ({ ...prev, goal: e.target.value }))}
-                    step="0.1"
+                    step="0.001"
                     min="0"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
+                  <Label htmlFor="image">Image URL *</Label>
                   <Input
-                    id="category"
-                    placeholder="Technology, Education, etc."
-                    value={newCampaign.category}
-                    onChange={(e) => setNewCampaign(prev => ({ ...prev, category: e.target.value }))}
+                    id="image"
+                    placeholder="https://example.com/image.jpg"
+                    value={newCampaign.imageUrl}
+                    onChange={(e) => setNewCampaign(prev => ({ ...prev, imageUrl: e.target.value }))}
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="deadline">Deadline *</Label>
-                <Input
-                  id="deadline"
-                  type="datetime-local"
-                  value={newCampaign.deadline}
-                  onChange={(e) => setNewCampaign(prev => ({ ...prev, deadline: e.target.value }))}
-                  min={new Date().toISOString().slice(0, 16)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="image">Image URL</Label>
-                <Input
-                  id="image"
-                  placeholder="https://example.com/image.jpg"
-                  value={newCampaign.image}
-                  onChange={(e) => setNewCampaign(prev => ({ ...prev, image: e.target.value }))}
-                />
-              </div>
-
-              <Button onClick={createCampaign} className="w-full">
-                Create Campaign
-              </Button>
+                <Button type="submit" className="w-full">
+                  Create Campaign
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </main>
@@ -564,28 +511,15 @@ const CrowdfundingApp = () => {
     );
   }
 
-  // Main campaign list view
   return (
     <div className="min-h-screen bg-background text-foreground p-6 md:p-10">
       <header className="max-w-6xl mx-auto mb-8">
-        <div className="flex items-center gap-4 mb-6">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => navigate("/")}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Home
-          </Button>
-        </div>
-        
         <div className="text-center mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2 sm:mb-4 bg-gradient-bitcoin bg-clip-text text-transparent">
-            Decentralized Crowdfunding
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2 sm:mb-4 bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
+            Solana Crowdfunding
           </h1>
           <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
-            Support innovative projects with cryptocurrency. Transparent, secure, and decentralized funding for the future.
+            Support innovative projects with SOL. Transparent, secure, and decentralized funding on the Solana blockchain.
           </p>
         </div>
 
@@ -644,17 +578,16 @@ const CrowdfundingApp = () => {
           {filteredCampaigns.map((campaign) => {
             const status = getStatusBadge(campaign);
             return (
-              <Card key={campaign.id} className="card-hover">
+              <Card key={campaign.cid.toString()} className="card-hover">
                 <CardHeader>
                   <div className="flex flex-col items-start gap-2">
                     <div className="flex flex-wrap items-center gap-3 mb-2">
                       <CardTitle className="text-xl">{campaign.title}</CardTitle>
                       <Badge variant={status.variant}>{status.text}</Badge>
-                      <Badge variant="outline">{campaign.category}</Badge>
                     </div>
                     <p className="text-muted-foreground line-clamp-2">{campaign.description}</p>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Created by {campaign.creator}
+                      Created by {campaign.creator.toBase58().slice(0, 4)}...{campaign.creator.toBase58().slice(-4)}
                     </p>
                   </div>
                 </CardHeader>
@@ -664,25 +597,25 @@ const CrowdfundingApp = () => {
                     <div className="space-y-1">
                       <div className="flex items-center justify-center gap-1">
                         <Bitcoin className="w-4 h-4 text-bitcoin-orange" />
-                        <span className="text-lg font-semibold">{campaign.raised}</span>
+                        <span className="text-lg font-semibold">{(campaign.amountRaised.toNumber() / 10**9).toFixed(2)}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">BTC Raised</p>
+                      <p className="text-xs text-muted-foreground">SOL Raised</p>
                     </div>
                     
                     <div className="space-y-1">
                       <div className="flex items-center justify-center gap-1">
                         <Users className="w-4 h-4 text-primary" />
-                        <span className="text-lg font-semibold">{campaign.contributors}</span>
+                        <span className="text-lg font-semibold">{campaign.donors.toNumber()}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">Contributors</p>
+                      <p className="text-xs text-muted-foreground">Donors</p>
                     </div>
                     
                     <div className="space-y-1">
                       <div className="flex items-center justify-center gap-1">
                         <Clock className="w-4 h-4 text-secondary" />
-                        <span className="text-lg font-semibold">{campaign.daysLeft}</span>
+                        <span className="text-lg font-semibold">{campaign.active ? "Active" : "Expired"}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">Days {campaign.daysLeft > 0 ? 'Left' : 'Ago'}</p>
+                      <p className="text-xs text-muted-foreground">Status</p>
                     </div>
                   </div>
                   
@@ -712,11 +645,17 @@ const CrowdfundingApp = () => {
                filter === "all" ? "No campaigns have been created yet." : 
                `No ${filter} campaigns available.`}
             </p>
+            {wallet && (
+                <Button onClick={() => setShowCreateForm(true)} className="mt-4">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Your First Campaign
+                </Button>
+            )}
           </div>
         )}
       </main>
+      <Toaster />
     </div>
   );
 };
-
-export default CrowdfundingApp;
+ export default  CrowdfundingApp
