@@ -1,22 +1,21 @@
-import { createRoot } from 'react-dom/client'
-import App from './App.tsx'
-import './index.css'
-import AppWalletProvider from './components/AppWalletProvider.tsx';
-import {Provider} from 'react-redux'
-// import { store } from './app/store/index.ts';
-import { Buffer } from 'buffer';
+import { createRoot } from "react-dom/client";
+import App from "./App.tsx";
+import "./index.css";
+import AppWalletProvider from "./components/AppWalletProvider.tsx";
+import { DataContextProvider } from "./context/DataContext.tsx";
+
+// Node polyfills (global, load once)
+import process from "process";
+import { Buffer } from "buffer";
+
+window.global = window;
+window.process = process;
 window.Buffer = Buffer;
 
-import { DataContextProvider } from './context/DataContext.tsx';
 createRoot(document.getElementById("root")!).render(
-    <DataContextProvider>
+  <DataContextProvider>
     <AppWalletProvider>
-
-
-<App />
-
+      <App />
     </AppWalletProvider>
-
-    </DataContextProvider>
-
+  </DataContextProvider>
 );
