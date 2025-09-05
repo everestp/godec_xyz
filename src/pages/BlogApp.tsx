@@ -269,7 +269,7 @@ const BlogApp = () => {
             <CardTitle>Connect Wallet</CardTitle>
           </CardHeader>
           <CardContent>
-            <WalletMultiButton />
+          <WalletMultiButton style={{background :'orange', color:"white" }} />
           </CardContent>
         </Card>
       </div>
@@ -351,7 +351,7 @@ const BlogApp = () => {
           >
             <Plus className="mr-2 h-4 w-4" /> New Post
           </Button>
-          <WalletMultiButton />
+        <WalletMultiButton style={{background :'orange', color:"white" }} />
         </div>
       </header>
 

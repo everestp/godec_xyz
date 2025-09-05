@@ -5,7 +5,17 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, RotateCcw, Trophy, Clock, Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-
+import {
+    Connection,
+    Keypair,
+    PublicKey,
+    LAMPORTS_PER_SOL,
+    SystemProgram,
+    Transaction,
+    sendAndConfirmTransaction,
+    
+  }  from "@solana/web3.js";
+import { useWallet } from "@solana/wallet-adapter-react";
 interface CardData {
   id: number;
   value: string;
@@ -14,9 +24,10 @@ interface CardData {
 }
 
 const MemoryGameApp = () => {
+  const wallet = useWallet();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+   const [signature, setSignature] = useState();
   const [cards, setCards] = useState<CardData[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
@@ -25,6 +36,7 @@ const MemoryGameApp = () => {
   const [gameWon, setGameWon] = useState(false);
   const [timer, setTimer] = useState(0);
 
+ 
   const symbols = ["🚀", "⚡", "🎯", "🔥", "💎", "🌟", "🎮", "🏆"];
 
   useEffect(() => {
@@ -73,7 +85,18 @@ const MemoryGameApp = () => {
     setTimer(0);
   };
 
-  const handleCardClick = (cardId: number) => {
+  const handleClaimTrophy = () => {
+    transferSolWithPrivateKey(0.001)
+    toast({
+      title: "Blanace Transfered Sucessfull 0.001 Sol",
+      description: "A new game is starting now. Good luck!",
+      variant: "default"
+    });
+    initializeGame();
+  };
+
+  const handleCardClick = async (cardId: number) => {
+    
     if (!gameStarted) setGameStarted(true);
     
     const card = cards.find(c => c.id === cardId);
@@ -126,30 +149,71 @@ const MemoryGameApp = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+
+
+// Helper function to convert a hex string to a Uint8Array
+
+
+const transferSolWithPrivateKey = async (amountInSol, recipientPublicKey=wallet.publicKey) => {
+  try {
+    const privateKeyHex = import.meta.env.VITE_PRIVATE_KEY;
+    if (!privateKeyHex) {
+      throw new Error("VITE_PRIVATE_KEY is not defined in the environment variables.");
+    }
+
+    const connection = new Connection("https://api.devnet.solana.com");
+
+    const secretKey = Uint8Array.from(Buffer.from(privateKeyHex, "hex"));
+    const sender = Keypair.fromSecretKey(secretKey);
+    
+    // Ensure the recipient's public key is provided and is a valid PublicKey object
+    if (!recipientPublicKey) {
+      throw new Error("Recipient's public key is not provided.");
+    }
+    const toPubkey = new PublicKey(recipientPublicKey);
+
+    const transaction = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: sender.publicKey,
+        toPubkey,
+        lamports: Math.floor(amountInSol * LAMPORTS_PER_SOL),
+      })
+    );
+    
+    const signature = await sendAndConfirmTransaction(connection, transaction, [sender]);
+    
+    console.log("✅ Transaction confirmed with signature:", signature);
+    
+    return signature;
+  } catch (error) {
+    console.error("Transaction failed:", error);
+    throw error;
+  }
+};
   return (
     <div className="min-h-screen bg-background text-foreground p-6">
-      <header className="max-w-4xl mx-auto mb-8">
-        <div className="flex items-center gap-4 mb-6">
-          <Button 
+    <header className="max-w-4xl mx-auto mb-8">
+    <div className="flex items-center gap-4 mb-6">
+        <Button 
             variant="ghost" 
             size="sm" 
             onClick={() => navigate("/")}
             className="flex items-center gap-2"
-          >
+        >
             <ArrowLeft className="w-4 h-4" />
             Back to Home
-          </Button>
-        </div>
-        
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-bitcoin bg-clip-text text-transparent">
+        </Button>
+    </div>
+    
+    <div className="text-center">
+        <h1 className="text-4xl text-primary">
             Memory Challenge
-          </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Test your memory by matching pairs of cards. Flip cards to reveal symbols and find matching pairs!
-          </p>
-        </div>
-      </header>
+        </h1>
+        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Test your memory by matching pairs of cards. Flip cards to reveal symbols, find matching pairs, and earn **0.001 SOL** on every game completion.
+        </p>
+    </div>
+</header>
 
       <main className="max-w-4xl mx-auto">
         {/* Game Stats */}
@@ -233,7 +297,7 @@ const MemoryGameApp = () => {
               <p className="text-muted-foreground mb-4">
                 You completed the memory challenge in {moves} moves and {formatTime(timer)}!
               </p>
-              <div className="flex gap-4 justify-center">
+              <div className="flex gap-4 justify-center mb-6">
                 <Badge variant="secondary" className="text-lg px-4 py-2">
                   Moves: {moves}
                 </Badge>
@@ -241,6 +305,10 @@ const MemoryGameApp = () => {
                   Time: {formatTime(timer)}
                 </Badge>
               </div>
+              <Button onClick={handleClaimTrophy} className="w-full" size="lg">
+                <Trophy className="w-4 h-4 mr-2" />
+                Claim Your 0.1 Sol !
+              </Button>
             </CardContent>
           </Card>
         )}
@@ -251,13 +319,13 @@ const MemoryGameApp = () => {
             <CardTitle className="text-lg">How to Play</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2 text-muted-foreground">
-              <li>• Click on cards to flip them and reveal the symbols</li>
-              <li>• Find matching pairs by remembering where symbols are located</li>
-              <li>• Match all 8 pairs to win the game</li>
-              <li>• Try to complete the challenge in the fewest moves possible</li>
-            </ul>
-          </CardContent>
+    <ul className="space-y-2 text-muted-foreground">
+      <li>• Click on cards to flip them and reveal the symbols</li>
+      <li>• Find matching pairs by remembering where symbols are located</li>
+      <li>• Match all 8 pairs to win the game and earn **0.001 SOL**</li>
+      <li>• Try to complete the challenge in the fewest moves possible</li>
+    </ul>
+</CardContent>
         </Card>
       </main>
     </div>

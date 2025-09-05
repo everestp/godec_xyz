@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Bitcoin, Github, Linkedin, Code, Layers, ShieldCheck, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
 const LearnMore = () => {
   const navigate = useNavigate();
@@ -146,23 +147,28 @@ const LearnMore = () => {
 
       {/* Footer */}
       <footer className="border-t border-border/50 bg-card/30 mt-16">
-        <div className="container mx-auto px-4 py-12">
-          <div className="text-center">
-            <h3 className="text-2xl font-bold mb-4">Ready to Go Decentralized?</h3>
-            <p className="text-muted-foreground mb-6">
-              Connect your wallet today and take your first step into a world of true digital freedom and privacy.
+    <div className="container mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+        <div className="md:col-span-2 text-center md:text-left">
+            <h3 className="text-3xl font-extrabold  text-primary">
+                Ready to Go Decentralized?
+            </h3>
+            <p className="text-lg text-muted-foreground mb-6 max-w-2xl">
+                Connect your wallet today and take your first step into a world of true digital freedom and privacy.
             </p>
-            <Button className="bitcoin-glow">
-              <Bitcoin className="w-4 h-4 mr-2" />
-              Get Started Today
-            </Button>
-          </div>
-          
-          <div className="mt-12 pt-8 border-t border-border/30 text-center text-sm text-muted-foreground">
-            <p>© {new Date().getFullYear()} godec.xyz - Empowering decentralization, one app at a time.</p>
-          </div>
+         <WalletMultiButton style={{ background: 'orange', color: "white" }} />
         </div>
-      </footer>
+        
+        <div className="md:col-span-1 text-center md:text-right">
+            <div className="flex justify-center md:justify-end space-x-4 mb-4">
+                <a href="#" className="text-muted-foreground hover:text-white transition-colors duration-300">Terms of Service</a>
+                <a href="#" className="text-muted-foreground hover:text-white transition-colors duration-300">Privacy Policy</a>
+            </div>
+            <p className="text-sm text-muted-foreground">
+                © {new Date().getFullYear()} godec.xyz - Empowering decentralization, one app at a time.
+            </p>
+        </div>
+    </div>
+</footer>
     </div>
   );
 };

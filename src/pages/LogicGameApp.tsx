@@ -25,6 +25,7 @@ const LogicGameApp = () => {
   const [currentLevel, setCurrentLevel] = useState(1);
   const [timer, setTimer] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
+  const [isGameComplete, setIsGameComplete] = useState(false);
 
   const puzzles: LogicPuzzle[] = [
     {
@@ -72,18 +73,19 @@ const LogicGameApp = () => {
   ];
 
   useEffect(() => {
-    if (gameStarted) {
+    if (gameStarted && !isGameComplete) {
       const interval = setInterval(() => {
         setTimer(prev => prev + 1);
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [gameStarted]);
+  }, [gameStarted, isGameComplete]);
 
   const startNewGame = () => {
     setCurrentLevel(1);
     setScore(0);
     setTimer(0);
+    setIsGameComplete(false);
     setGameStarted(true);
     loadPuzzle();
   };
@@ -118,7 +120,11 @@ const LogicGameApp = () => {
         description: `You earned ${points} points!`,
         variant: "default"
       });
-      setCurrentLevel(prev => prev + 1);
+      if (currentLevel === puzzles.length) {
+        setIsGameComplete(true);
+      } else {
+        setCurrentLevel(prev => prev + 1);
+      }
     } else {
       toast({
         title: "Incorrect 🤔",
@@ -130,8 +136,14 @@ const LogicGameApp = () => {
     setShowExplanation(true);
   };
 
-  const nextPuzzle = () => {
-    loadPuzzle();
+  const handleCollectReward = () => {
+    toast({
+      title: "🎉 Congratulations!",
+      description: "You have completed all the puzzles!",
+      variant: "default"
+    });
+    // Reset the game after collecting the reward
+    startNewGame();
   };
 
   const formatTime = (seconds: number) => {
@@ -218,7 +230,7 @@ const LogicGameApp = () => {
         </div>
 
         {/* Current Puzzle */}
-        {currentPuzzle && (
+        {gameStarted && currentPuzzle ? (
           <Card className="mb-6">
             <CardHeader>
               <div className="flex justify-between items-start">
@@ -266,6 +278,11 @@ const LogicGameApp = () => {
                 >
                   Submit Answer
                 </Button>
+              ) : isGameComplete ? (
+                <Button onClick={handleCollectReward} className="w-full" size="lg">
+                  <Trophy className="w-4 h-4 mr-2" />
+                  Collect Your Reward!
+                </Button>
               ) : (
                 <div className="space-y-4">
                   <div className="p-4 bg-card rounded-lg border">
@@ -276,17 +293,15 @@ const LogicGameApp = () => {
                     <p className="text-muted-foreground">{currentPuzzle.explanation}</p>
                   </div>
                   
-                  <Button onClick={nextPuzzle} className="w-full" size="lg">
+                  <Button onClick={loadPuzzle} className="w-full" size="lg">
                     Next Puzzle
                   </Button>
                 </div>
               )}
             </CardContent>
           </Card>
-        )}
-
-        {/* Instructions */}
-        {!gameStarted && (
+        ) : (
+          /* Instructions */
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">How to Play</CardTitle>
@@ -299,6 +314,9 @@ const LogicGameApp = () => {
                 <li>• Difficulty increases as you progress through levels</li>
                 <li>• Learn from explanations to improve your logical reasoning skills</li>
               </ul>
+              <div className="mt-6 text-center">
+                <Button onClick={startNewGame} size="lg">Start Game</Button>
+              </div>
             </CardContent>
           </Card>
         )}

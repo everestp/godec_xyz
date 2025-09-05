@@ -265,7 +265,7 @@ const CrowdfundingApp = () => {
         <div className="max-w-md w-full space-y-6 text-center">
           <h2 className="text-2xl font-bold">Connect Your Wallet</h2>
           <p>Please connect your Solana wallet to get started.</p>
-          <WalletMultiButton />
+        <WalletMultiButton style={{background :'orange', color:"white" }} />
         </div>
         <Toaster />
       </div>

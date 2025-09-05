@@ -1,524 +1,388 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { toast as rtoast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-
-// Import necessary components and hooks
-import { ArrowLeft, Vote, Plus, Clock, Users, BarChart3, Eye, CheckCircle, Badge } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Shuffle, Trophy, Clock, Target, Gift } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { BN } from "@coral-xyz/anchor";
-import { Connection, SystemProgram, PublicKey } from '@solana/web3.js';
-import { getCandidateAddress, getCounterAddress, getPollAddress, getRegistrationAddress, getVoterAddress, useProgram } from "@/utils/solana-program";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { DialogHeader } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { publicKey } from "@project-serum/anchor/dist/cjs/utils";
-import { Dialog, DialogTrigger, DialogContent, DialogTitle } from "@radix-ui/react-dialog";
-import { Label } from "recharts";
+import * as web3 from '@solana/web3.js';
 
-// Define on-chain account types
-interface PollAccount {
-  id: BN;
-  description: string;
-  start: BN;
-  end: BN;
-}
+const PuzzleGameApp = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  const [grid, setGrid] = useState<(number | null)[]>(Array(9).fill(null));
+  const [moves, setMoves] = useState(0);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [gameWon, setGameWon] = useState(false);
+  const [timer, setTimer] = useState(0);
+  const [claimedRewards, setClaimedRewards] = useState([]);
+  const [rewardClaimed, setRewardClaimed] = useState(false);
 
-interface CandidateAccount {
-  cid: BN;
-  pollId: BN;
-  name: string;
-  votes: BN;
-}
+  const WINNING_STATE = [1, 2, 3, 4, 5, 6, 7, 8, null];
 
-const VotingApp = () => {
-    const { toast } = useToast();
-    const program = useProgram()
-    const wallet = useWallet()
-    const [isLoading, setIsLoading] = useState(false);
-    const [polls, setPolls] = useState<PollAccount[]>([]);
-    const [candidates, setCandidates] = useState<CandidateAccount[]>([]);
-    const [isInitialized, setIsInitialized] = useState(false);
-    const [selectedPoll, setSelectedPoll] = useState<PollAccount | null>(null);
-    const [filter, setFilter] = useState<"all" | "active" | "ended">("all");
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [newPoll, setNewPoll] = useState({ description: "", deadline: "" });
-    const [newCandidateName, setNewCandidateName] = useState("");
-    const [isRegisterCandidateDialogOpen, setIsRegisterCandidateDialogOpen] = useState(false)
+  useEffect(() => {
+    initializeGame();
+    // Load claimed rewards from localStorage on initial render
+    const storedRewards = localStorage.getItem("puzzleRewards");
+    if (storedRewards) {
+      setClaimedRewards(JSON.parse(storedRewards));
+    }
+  }, []);
 
-    const handleRegisterCandidate = async (pollId: BN) => {
-      if (!program || !wallet.publicKey || !newCandidateName) {
-        toast({ title: "Error", description: "Please enter a candidate name.", variant: "destructive" });
-        return;
+  useEffect(() => {
+    let interval;
+    if (gameStarted && !gameWon) {
+      interval = setInterval(() => {
+        setTimer(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [gameStarted, gameWon]);
+
+  useEffect(() => {
+    if (JSON.stringify(grid) === JSON.stringify(WINNING_STATE) && gameStarted) {
+      setGameWon(true);
+      setGameStarted(false);
+      toast({
+        title: "Puzzle Solved! 🎉",
+        description: `You solved it in ${moves} moves and ${timer} seconds!`,
+        variant: "default"
+      });
+    }
+  }, [grid, moves, timer, gameStarted, toast]);
+
+  // Save claimed rewards to localStorage whenever the state changes
+  useEffect(() => {
+    localStorage.setItem("puzzleRewards", JSON.stringify(claimedRewards));
+  }, [claimedRewards]);
+
+  const shuffleArray = (array) => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  };
+
+  const isSolvable = (puzzle) => {
+    const flatPuzzle = puzzle.filter(x => x !== null);
+    let inversions = 0;
+    
+    for (let i = 0; i < flatPuzzle.length - 1; i++) {
+      for (let j = i + 1; j < flatPuzzle.length; j++) {
+        if (flatPuzzle[i] > flatPuzzle[j]) {
+          inversions++;
+        }
       }
-      setIsLoading(true);
-      try {
-        const registerationsPda = getRegistrationAddress();
-        const pollPda = getPollAddress(pollId.toNumber());
-        const registerationsAccount = await program.account.registerations.fetch(registerationsPda);
-        const nextCandidateId = registerationsAccount.count.toNumber() + 1;
-        const candidatePda = getCandidateAddress(pollId.toNumber(), nextCandidateId);
+    }
+    
+    return inversions % 2 === 0;
+  };
 
-        await program.methods
-          .registerCandidate(pollId, newCandidateName)
-          .accounts({
-            poll: pollPda,
-            candidate: candidatePda,
-            user: wallet.publicKey,
-            registerations: registerationsPda,
-            systemProgram: SystemProgram.programId,
-          })
-          .rpc();
+  const initializeGame = () => {
+    let shuffled;
+    do {
+      shuffled = shuffleArray([1, 2, 3, 4, 5, 6, 7, 8, null]);
+    } while (!isSolvable(shuffled) || JSON.stringify(shuffled) === JSON.stringify(WINNING_STATE));
+    
+    setGrid(shuffled);
+    setMoves(0);
+    setGameStarted(false);
+    setGameWon(false);
+    setTimer(0);
+    setRewardClaimed(false);
+  };
 
-        await fetchBlockchainData();
-        setNewCandidateName("");
-         setIsRegisterCandidateDialogOpen(false);
-        setSelectedPoll(prev => prev ? { ...prev, candidates: (prev.candidates || 0) + 1 } : null); // Optimistically update count
-        toast({ title: "Success", description: "Candidate registered successfully!" });
-      } catch (error) {
-        console.error("Candidate registration failed:", error);
-        toast({ title: "Error", description: "Candidate registration failed. Check console for details.", variant: "destructive" });
-      } finally {
-        setIsLoading(false);
-      }
+  const getEmptyIndex = () => grid.indexOf(null);
+
+  const getValidMoves = (emptyIndex) => {
+    const validMoves = [];
+    const row = Math.floor(emptyIndex / 3);
+    const col = emptyIndex % 3;
+
+    // Up
+    if (row > 0) validMoves.push(emptyIndex - 3);
+    // Down
+    if (row < 2) validMoves.push(emptyIndex + 3);
+    // Left
+    if (col > 0) validMoves.push(emptyIndex - 1);
+    // Right
+    if (col < 2) validMoves.push(emptyIndex + 1);
+
+    return validMoves;
+  };
+
+  const handleTileClick = (index) => {
+    if (!gameStarted) setGameStarted(true);
+    
+    const emptyIndex = getEmptyIndex();
+    const validMoves = getValidMoves(emptyIndex);
+
+    if (validMoves.includes(index)) {
+      const newGrid = [...grid];
+      [newGrid[emptyIndex], newGrid[index]] = [newGrid[index], newGrid[emptyIndex]];
+      setGrid(newGrid);
+      setMoves(prev => prev + 1);
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleClaimReward = () => {
+    const newReward = {
+      id: Date.now(),
+      date: new Date().toLocaleString(),
+      moves: moves,
+      time: timer
     };
-    const handleVote = async (pollId: BN, cid: BN) => {
-      if (!program || !wallet.publicKey || !selectedPoll) return;
-      setIsLoading(true);
-      try {
-        const pollPda = getPollAddress(pollId.toNumber());
-        const candidatePda = getCandidateAddress(pollId.toNumber(), cid.toNumber());
-        const voterPda = getVoterAddress(pollId.toNumber(), wallet.publicKey);
-
-        await program.methods
-          .vote(pollId, cid)
-          .accounts({
-            poll: pollPda,
-            candidate: candidatePda,
-            voter: voterPda,
-            user: wallet.publicKey,
-            systemProgram: SystemProgram.programId,
-          })
-          .rpc();
-
-        await fetchBlockchainData();
-        toast({ title: "Success", description: "Vote cast successfully!" });
-      } catch (error) {
-        console.error("Voting failed:", error);
-        toast({ title: "Error", description: "Voting failed. Check console for details.", variant: "destructive" });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    const fetchBlockchainData = async () => {
-        // const { publicKey, wallet } = useWallet();
-        if (!program) return;
-        setIsLoading(true);
-        try {
-            const allPolls = await program.account.poll.all();
-            const allCandidates = await program.account.candidate.all();
-            setPolls(allPolls.map(p => p.account));
-            setCandidates(allCandidates.map(c => c.account));
-
-            // Check if counter account exists to determine initialization status
-            const counterPda = getCounterAddress();
-            try {
-                await program.account.counter.fetch(counterPda);
-                setIsInitialized(true);
-            } catch (err) {
-                setIsInitialized(false);
-            }
-        } catch (error) {
-            console.error("Failed to fetch blockchain data:", error);
-            toast({ title: "Error", description: "Could not fetch data from the blockchain.", variant: "destructive" });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchBlockchainData();
-        const interval = setInterval(fetchBlockchainData, 10000); // Refresh every 10 seconds
-        return () => clearInterval(interval);
-    }, [wallet.publicKey]);
-
-    const handleInitialize = async () => {
-        if (!program || !wallet.publicKey) return;
-        setIsLoading(true);
-        try {
-
-            const counterPda = getCounterAddress()
-            const registerationsPda = getRegistrationAddress()
+    setClaimedRewards(prev => [...prev, newReward]);
+    setRewardClaimed(true);
+    toast({
+      title: "Reward Claimed! 🏆",
+      description: "Your stats have been added to your history.",
+      variant: "default"
+    });
+  };
 
 
-            await program.methods
-                .initializeVote()
-                .accounts({
-                    user: wallet.publicKey,
-                    counter: counterPda,
-                    registerations: registerationsPda,
-                    systemProgram: SystemProgram.programId,
-                })
-                .rpc();
+  // handle Transation
+  const transferSolWithPrivateKey = async (
+  recipientAddress,
+  amountInSol,
+  network = 'devnet'
+) => {
+  try {
+    // 1. Establish a connection to the Solana cluster
+    const connection = new web3.Connection(web3.clusterApiUrl(network), 'confirmed');
+    
+    // 2. Load the sender's keypair from the private key
+    const senderKeypair = web3.Keypair.fromSecretKey(new Uint8Array(PRIVATE_KEY_ARRAY));
 
-            await fetchBlockchainData();
-            toast({ title: "Success", description: "Program initialized!", });
-        } catch (error) {
-            console.error("Initialization failed:", error);
-            toast({ title: "Error", description: "Initialization failed. Check console for details.", variant: "destructive" });
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    // 3. Get the public keys for the sender and recipient
+    const fromPubkey = senderKeypair.publicKey;
+    const toPubkey = new web3.PublicKey(recipientAddress);
 
-    const handleCreatePoll = async () => {
-        // Corrected usage: using wallet.publicKey instead of the imported publicKey
-        if (!program || !wallet.publicKey || !newPoll.description || !newPoll.deadline) {
-            toast({ title: "Error", description: "Please fill all fields.", variant: "destructive" });
-            return;
-        }
+    // 4. Get a recent blockhash for the transaction
+    const { blockhash } = await connection.getLatestBlockhash();
 
-        setIsLoading(true);
-        try {
-               const deadlineTimestamp = new Date(newPoll.deadline).getTime() / 1000;
-        const counterPda = getCounterAddress();
-        const counterAccount = await program.account.counter.fetch(counterPda);
-        const nextPollId = counterAccount.count.toNumber() + 1;
-
-        // Corrected: pass the nextPollId as a number, which will be handled correctly by the PDA function
-        const pollPda = getPollAddress(nextPollId);
-
-        await program.methods
-            .createPoll(
-                // Add the nextPollId as the first argument
-                new BN(nextPollId),
-                newPoll.description,
-                new BN(Date.now() / 1000),
-                new BN(deadlineTimestamp)
-            )
-            .accounts({
-                user: wallet.publicKey,
-                poll: pollPda,
-                counter: counterPda,
-                systemProgram: SystemProgram.programId,
-            })
-            .rpc();
-            await fetchBlockchainData();
-            setNewPoll({ description: "", deadline: "" });
-            setIsDialogOpen(false);
-            toast({ title: "Success", description: "Poll created successfully!" });
-        } catch (error) {
-            console.error("Poll creation failed:", error);
-            toast({ title: "Error", description: "Poll creation failed. Check console for details.", variant: "destructive" });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-
-
-    const filteredPolls = polls.filter((poll) => {
-        const isActive = poll.end.toNumber() * 1000 > Date.now();
-        if (filter === "all") return true;
-        if (filter === "active") return isActive;
-        if (filter === "ended") return !isActive;
+    // 5. Create a new transaction
+    const transaction = new web3.Transaction({
+      recentBlockhash: blockhash,
+      feePayer: fromPubkey,
     });
 
-    const getPollCandidates = (pollId: BN) => candidates.filter(c => c.pollId.eq(pollId));
-    const getPollTotalVotes = (pollId: BN) => getPollCandidates(pollId).reduce((sum, c) => sum + c.votes.toNumber(), 0);
-
-    const getTimeLeft = (deadline: BN) => {
-        const diff = deadline.toNumber() * 1000 - Date.now();
-        if (diff <= 0) return "Ended";
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        return days > 0 ? `${days}d ${hours}h left` : `${hours}h left`;
-    };
-
-    // The rest of your JSX remains largely the same, but with blockchain-fetched data.
-
-    return (
-        <div className="min-h-screen bg-background text-foreground p-6">
-            <ToastContainer />
-            <div className="text-center mb-8">
-                <h1 className="text-3xl sm:text-4xl font-bold mb-2 sm:mb-4 bg-gradient-bitcoin bg-clip-text text-transparent">
-                    Decentralized Voting
-                </h1>
-                <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                    Participate in transparent, blockchain-based governance. Create polls and vote on important decisions.
-                </p>
-            </div>
-            {!wallet.publicKey && (
-                <div className="text-center space-y-4 mt-10">
-                    <WalletMultiButton />
-                    <p className="text-muted-foreground">
-                        Please connect your wallet to get started.
-                    </p>
-                </div>
-            )}
-            {!isInitialized && wallet.publicKey && (
-                <div className="text-center space-y-4 mt-10">
-                    <Button onClick={handleInitialize} disabled={isLoading}>
-                        {isLoading ? "Initializing..." : "Initialize"}
-                    </Button>
-                </div>
-            )}
-            {isInitialized && wallet && (
-                <>
-                    <header className="max-w-6xl mx-auto mb-8">
-                        <div className="flex flex-wrap items-center justify-between gap-4">
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant={filter === "all" ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => setFilter("all")}
-                                >
-                                    All Polls
-                                </Button>
-                                <Button
-                                    variant={filter === "active" ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => setFilter("active")}
-                                >
-                                    Active
-                                </Button>
-                                <Button
-                                    variant={filter === "ended" ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => setFilter("ended")}
-                                >
-                                    Ended
-                                </Button>
-                            </div>
-                            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <Button className="flex items-center gap-2">
-                                        <Plus className="w-4 h-4" />
-                                        Create Poll
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-2xl">
-                                    <DialogHeader>
-                                        <DialogTitle>Create New Poll</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="space-y-6">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="description">Description *</Label>
-                                            <Textarea
-                                                id="description"
-                                                placeholder="Describe what this poll is about..."
-                                                value={newPoll.description}
-                                                rows={3}
-                                                onChange={(e) => setNewPoll((prev) => ({ ...prev, description: e.target.value }))}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="deadline">Deadline *</Label>
-                                            <Input
-                                                id="deadline"
-                                                type="datetime-local"
-                                                value={newPoll.deadline}
-                                                onChange={(e) => setNewPoll((prev) => ({ ...prev, deadline: e.target.value }))}
-                                                min={new Date().toISOString().slice(0, 16)}
-                                            />
-                                        </div>
-                                        <Button onClick={handleCreatePoll} className="w-full" disabled={isLoading}>
-                                            {isLoading ? "Creating..." : "Create Poll"}
-                                        </Button>
-                                    </div>
-                                </DialogContent>
-                            </Dialog>
-                        </div>
-                    </header>
-                    <main className="max-w-6xl mx-auto mt-10">
-                      {/* Add this new section inside the main return statement, after the `<main>` tag. */}
-                      {/* This dialog will show the detailed view for a single poll. */}
-
-                      {selectedPoll && (
-                        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 overflow-y-auto">
-                          <div className="flex justify-center items-start pt-12 p-4 min-h-screen">
-                            <Card className="max-w-4xl w-full">
-                              <CardHeader className="flex flex-row items-center justify-between">
-                                <Button variant="ghost" onClick={() => setSelectedPoll(null)}>
-                                  <ArrowLeft className="w-4 h-4 mr-2" />
-                                  Back to Polls
-                                </Button>
-                                <div className="flex items-center gap-2">
-                                  <CardTitle className="text-2xl">{selectedPoll.description}</CardTitle>
-                                  <Badge variant={selectedPoll.end.toNumber() * 1000 > Date.now() ? "default" : "secondary"}>
-                                    {selectedPoll.end.toNumber() * 1000 > Date.now() ? "Active" : "Ended"}
-                                  </Badge>
-                                </div>
-                              </CardHeader>
-                              <CardContent className="space-y-6">
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                                  <div className="space-y-1">
-                                    <div className="flex items-center justify-center gap-1">
-                                      <Users className="w-4 h-4 text-primary" />
-                                      <span className="text-xl font-semibold">{getPollTotalVotes(selectedPoll.id)}</span>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground">Total Votes</p>
-                                  </div>
-                                  <div className="space-y-1">
-                                    <div className="flex items-center justify-center gap-1">
-                                      <BarChart3 className="w-4 h-4 text-accent" />
-                                      <span className="text-xl font-semibold">{getPollCandidates(selectedPoll.id).length}</span>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground">Candidates</p>
-                                  </div>
-                                  <div className="space-y-1">
-                                    <div className="flex items-center justify-center gap-1">
-                                      <Clock className="w-4 h-4 text-secondary" />
-                                      <span className="text-xl font-semibold">{getTimeLeft(selectedPoll.end)}</span>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground">Time Left</p>
-                                  </div>
-                                </div>
-
-                                <div className="space-y-4">
-                                  <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-semibold">Candidates</h3>
-                                    <Dialog open={isRegisterCandidateDialogOpen} onOpenChange={setIsRegisterCandidateDialogOpen}>
-                                      <DialogTrigger asChild>
-                                        <Button size="sm">
-                                          <Plus className="w-4 h-4 mr-2" />
-                                          Register Candidate
-                                        </Button>
-                                      </DialogTrigger>
-                                      <DialogContent>
-                                        <DialogHeader>
-                                          <DialogTitle>Register New Candidate</DialogTitle>
-                                        </DialogHeader>
-                                        <div className="space-y-4">
-                                          <Input
-                                            placeholder="Candidate Name"
-                                            value={newCandidateName}
-                                            onChange={(e) => setNewCandidateName(e.target.value)}
-                                          />
-                                          <Button
-                                            onClick={() => handleRegisterCandidate(selectedPoll.id)}
-                                            className="w-full"
-                                            disabled={isLoading || !newCandidateName}
-                                          >
-                                            {isLoading ? "Registering..." : "Register"}
-                                          </Button>
-                                        </div>
-                                      </DialogContent>
-                                    </Dialog>
-                                  </div>
-
-                                  <ul className="space-y-3">
-                                    {getPollCandidates(selectedPoll.id).map(candidate => (
-                                      <li key={candidate.cid.toString()} className="flex items-center justify-between p-3 bg-card rounded-md">
-                                        <span className="font-medium">{candidate.name}</span>
-                                        <div className="flex items-center gap-4">
-                                          <div className="flex items-center gap-1">
-                                            <Vote className="w-4 h-4 text-muted-foreground" />
-                                            <span className="font-semibold">{candidate.votes.toNumber()}</span>
-                                          </div>
-                                          {selectedPoll.end.toNumber() * 1000 > Date.now() && (
-                                            <Button
-                                              size="sm"
-                                              onClick={() => handleVote(selectedPoll.id, candidate.cid)}
-                                              disabled={isLoading}
-                                            >
-                                              <CheckCircle className="w-4 h-4 mr-2" />
-                                              Vote
-                                            </Button>
-                                          )}
-                                        </div>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                  {getPollCandidates(selectedPoll.id).length === 0 && (
-                                    <p className="text-center text-muted-foreground italic">No candidates registered yet. Be the first!</p>
-                                  )}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </div>
-                        </div>
-                      )}
-                        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                            {filteredPolls.map((poll) => {
-                                const isActive = poll.end.toNumber() * 1000 > Date.now();
-                                const statusBadge = isActive ? { variant: "default", text: "Active" } : { variant: "secondary", text: "Ended" };
-                                const pollCandidates = getPollCandidates(poll.id);
-                                const totalVotes = getPollTotalVotes(poll.id);
-
-                                return (
-                                    <Card key={poll.id.toString()} className="card-hover">
-                                        <CardHeader>
-                                            <div className="flex flex-col items-start gap-2">
-                                                <div className="flex flex-wrap items-center gap-3 mb-2">
-                                                    <CardTitle className="text-xl">{poll.description}</CardTitle>
-                                                    <Badge variant={statusBadge.variant}>{statusBadge.text}</Badge>
-                                                </div>
-                                            </div>
-                                        </CardHeader>
-                                        <CardContent className="space-y-4">
-                                            <div className="grid grid-cols-3 gap-4 text-center">
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center justify-center gap-1">
-                                                        <Users className="w-4 h-4 text-primary" />
-                                                        <span className="text-lg font-semibold">{totalVotes}</span>
-                                                    </div>
-                                                    <p className="text-xs text-muted-foreground">Total Votes</p>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center justify-center gap-1">
-                                                        <BarChart3 className="w-4 h-4 text-accent" />
-                                                        <span className="text-lg font-semibold">{pollCandidates.length}</span>
-                                                    </div>
-                                                    <p className="text-xs text-muted-foreground">Candidates</p>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center justify-center gap-1">
-                                                        <Clock className="w-4 h-4 text-secondary" />
-                                                        <span className="text-lg font-semibold">{getTimeLeft(poll.end)}</span>
-                                                    </div>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {isActive ? "Time Left" : "Ended"}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-center mt-4">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => setSelectedPoll(poll)}
-                                                    className="w-full"
-                                                >
-                                                    <Eye className="w-4 h-4 mr-2" />
-                                                    View Details
-                                                </Button>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                );
-                            })}
-                        </div>
-                        {filteredPolls.length === 0 && (
-                            <div className="text-center py-12">
-                                <Vote className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                                <h3 className="text-lg font-semibold mb-2">No polls found</h3>
-                                <p className="text-muted-foreground">
-                                    {filter === "all"
-                                        ? "No polls have been created yet."
-                                        : `No ${filter} polls available.`}
-                                </p>
-                            </div>
-                        )}
-                    </main>
-                </>
-            )}
-        </div>
+    // 6. Add the transfer instruction to the transaction
+    const lamports = amountInSol * web3.LAMPORTS_PER_SOL;
+    transaction.add(
+      web3.SystemProgram.transfer({
+        fromPubkey,
+        toPubkey,
+        lamports,
+      })
     );
+
+    // 7. Sign and send the transaction
+    const signature = await web3.sendAndConfirmTransaction(connection, transaction, [senderKeypair]);
+  } catch (error) {
+    console.error("Transaction failed:", error);
+  }
 };
 
-export default VotingApp;
+  return (
+    <div className="min-h-screen bg-background text-foreground p-6">
+      <header className="max-w-4xl mx-auto mb-8">
+        <div className="flex items-center gap-4 mb-6">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Button>
+        </div>
+        
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-red-500 to-yellow-500 bg-clip-text text-transparent">
+            Sliding Puzzle
+          </h1>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Arrange the numbered tiles in order from 1 to 8. Click on tiles adjacent to the empty space to move them.
+          </p>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto">
+        {/* Game Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Target className="w-5 h-5 text-primary" />
+                <span className="text-2xl font-bold">{moves}</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Moves</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Clock className="w-5 h-5 text-secondary" />
+                <span className="text-2xl font-bold">{formatTime(timer)}</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Time</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4 text-center">
+              <Badge 
+                variant={gameWon ? "default" : gameStarted ? "secondary" : "outline"}
+                className="text-lg px-4 py-2"
+              >
+                {gameWon ? "Solved!" : gameStarted ? "Playing" : "Ready"}
+              </Badge>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4 text-center">
+              <Button onClick={initializeGame} className="w-full">
+                <Shuffle className="w-4 h-4 mr-2" />
+                New Puzzle
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Game Board */}
+        <div className="flex justify-center mb-8">
+          <Card className="p-6">
+            <div className="grid grid-cols-3 gap-2 w-72 h-72">
+              {grid.map((tile, index) => (
+                <div
+                  key={index}
+                  onClick={() => handleTileClick(index)}
+                  className={`
+                    aspect-square rounded-lg border-2 flex items-center justify-center text-2xl font-bold transition-all duration-200
+                    ${tile === null 
+                      ? "border-dashed border-border/50 bg-background" 
+                      : "border-border bg-card cursor-pointer hover:border-primary hover:scale-105 hover:shadow-lg"
+                    }
+                  `}
+                >
+                  {tile}
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        {/* Winning Message & Claim Button */}
+        {gameWon && (
+          <Card className="mb-6 border-green-500 bg-green-500/10">
+            <CardContent className="p-6 text-center">
+              <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold mb-2">Puzzle Solved!</h2>
+              <p className="text-muted-foreground mb-4">
+                You solved the puzzle in {moves} moves and {formatTime(timer)}!
+              </p>
+              <div className="flex gap-4 justify-center">
+                <Badge variant="secondary" className="text-lg px-4 py-2">
+                  Moves: {moves}
+                </Badge>
+                <Badge variant="secondary" className="text-lg px-4 py-2">
+                  Time: {formatTime(timer)}
+                </Badge>
+              </div>
+              {!rewardClaimed && (
+                <Button 
+                  onClick={handleClaimReward} 
+                  className="mt-6 w-fit mx-auto"
+                >
+                  <Gift className="w-4 h-4 mr-2" />
+                  Claim Reward
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Solution Preview */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="text-lg">Goal Configuration</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-center mb-4">
+              <div className="grid grid-cols-3 gap-1 w-24 h-24">
+                {WINNING_STATE.map((tile, index) => (
+                  <div
+                    key={index}
+                    className={`
+                      aspect-square rounded border flex items-center justify-center text-xs font-bold
+                      ${tile === null 
+                        ? "border-dashed border-border/50 bg-background" 
+                        : "border-border bg-card"
+                      }
+                    `}
+                  >
+                    {tile}
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="space-y-2 text-muted-foreground text-sm">
+              <p>• Click on tiles adjacent to the empty space to move them</p>
+              <p>• Arrange numbers from 1 to 8 in order with the empty space in the bottom-right</p>
+              <p>• Challenge yourself to solve it in the fewest moves possible!</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Claimed Rewards History */}
+        <section>
+          <h2 className="text-2xl font-bold mb-4">Claimed Rewards History</h2>
+          {claimedRewards.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {claimedRewards.map((reward) => (
+                <Card key={reward.id}>
+                  <CardHeader>
+                    <CardTitle className="text-base font-semibold">
+                      Claimed on: {reward.date}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Target className="w-4 h-4 text-primary" />
+                      <span className="text-sm">Moves: {reward.moves}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-secondary" />
+                      <span className="text-sm">Time: {formatTime(reward.time)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-8">
+              No rewards claimed yet. Solve a puzzle to see your history here!
+            </p>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+};
+
+export default PuzzleGameApp;

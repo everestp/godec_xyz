@@ -2,14 +2,25 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Shuffle, Trophy, Clock, Target, Gift } from "lucide-react";
+import { ArrowLeft, Shuffle, Trophy, Clock, Target, Gift, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-
+import * as web3 from '@solana/web3.js';
+import { useWallet } from "@solana/wallet-adapter-react";
+import {
+    Connection,
+    Keypair,
+    PublicKey,
+    LAMPORTS_PER_SOL,
+    SystemProgram,
+    Transaction,
+    sendAndConfirmTransaction,
+    
+  }  from "@solana/web3.js";
 const PuzzleGameApp = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+  const wallet= useWallet()
   const [grid, setGrid] = useState<(number | null)[]>(Array(9).fill(null));
   const [moves, setMoves] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
@@ -17,7 +28,7 @@ const PuzzleGameApp = () => {
   const [timer, setTimer] = useState(0);
   const [claimedRewards, setClaimedRewards] = useState([]);
   const [rewardClaimed, setRewardClaimed] = useState(false);
-
+ const [signature, setSignature] = useState();
   const WINNING_STATE = [1, 2, 3, 4, 5, 6, 7, 8, null];
 
   useEffect(() => {
@@ -113,7 +124,7 @@ const PuzzleGameApp = () => {
     return validMoves;
   };
 
-  const handleTileClick = (index) => {
+  const handleTileClick = async  (index) => {
     if (!gameStarted) setGameStarted(true);
     
     const emptyIndex = getEmptyIndex();
@@ -133,13 +144,53 @@ const PuzzleGameApp = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleClaimReward = () => {
+ 
+
+  // handle Transation
+const transferSolWithPrivateKey = async (amountInSol, recipientPublicKey=wallet.publicKey) => {
+  try {
+    const privateKeyHex = import.meta.env.VITE_PRIVATE_KEY;
+    if (!privateKeyHex) {
+      throw new Error("VITE_PRIVATE_KEY is not defined in the environment variables.");
+    }
+
+    const connection = new Connection("https://api.devnet.solana.com");
+
+    const secretKey = Uint8Array.from(Buffer.from(privateKeyHex, "hex"));
+    const sender = Keypair.fromSecretKey(secretKey);
+    
+    // Ensure the recipient's public key is provided and is a valid PublicKey object
+    if (!recipientPublicKey) {
+      throw new Error("Recipient's public key is not provided.");
+    }
+    const toPubkey = new PublicKey(recipientPublicKey);
+
+    const transaction = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: sender.publicKey,
+        toPubkey,
+        lamports: Math.floor(amountInSol * LAMPORTS_PER_SOL),
+      })
+    );
+    
+    const signature = await sendAndConfirmTransaction(connection, transaction, [sender]);
+    
+    console.log("✅ Transaction confirmed with signature:", signature);
+    
+    return signature;
+  } catch (error) {
+    console.error("Transaction failed:", error);
+    throw error;
+  }
+};
+ const handleClaimReward =  async () => {
     const newReward = {
       id: Date.now(),
       date: new Date().toLocaleString(),
       moves: moves,
       time: timer
     };
+   await transferSolWithPrivateKey(0.001)
     setClaimedRewards(prev => [...prev, newReward]);
     setRewardClaimed(true);
     toast({
@@ -149,30 +200,31 @@ const PuzzleGameApp = () => {
     });
   };
 
+
   return (
     <div className="min-h-screen bg-background text-foreground p-6">
-      <header className="max-w-4xl mx-auto mb-8">
-        <div className="flex items-center gap-4 mb-6">
-          <Button 
+  <header className="max-w-4xl mx-auto mb-8">
+    <div className="flex items-center gap-4 mb-6">
+        <Button 
             variant="ghost" 
             size="sm" 
             onClick={() => navigate("/")}
             className="flex items-center gap-2"
-          >
+        >
             <ArrowLeft className="w-4 h-4" />
             Back to Home
-          </Button>
-        </div>
-        
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-red-500 to-yellow-500 bg-clip-text text-transparent">
+        </Button>
+    </div>
+    
+    <div className="text-center">
+        <h1 className="text-4xl font-bold text-primary">
             Sliding Puzzle
-          </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Arrange the numbered tiles in order from 1 to 8. Click on tiles adjacent to the empty space to move them.
-          </p>
-        </div>
-      </header>
+        </h1>
+        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Arrange the numbered tiles in order from 1 to 8. Click on tiles adjacent to the empty space to move them and earn **0.001 SOL** on every game completion.
+        </p>
+    </div>
+</header>
 
       <main className="max-w-4xl mx-auto">
         {/* Game Stats */}
@@ -264,7 +316,7 @@ const PuzzleGameApp = () => {
                   className="mt-6 w-fit mx-auto"
                 >
                   <Gift className="w-4 h-4 mr-2" />
-                  Claim Reward
+                  Claim Reward 0.01 Sol
                 </Button>
               )}
             </CardContent>
@@ -297,10 +349,10 @@ const PuzzleGameApp = () => {
             </div>
             
             <div className="space-y-2 text-muted-foreground text-sm">
-              <p>• Click on tiles adjacent to the empty space to move them</p>
-              <p>• Arrange numbers from 1 to 8 in order with the empty space in the bottom-right</p>
-              <p>• Challenge yourself to solve it in the fewest moves possible!</p>
-            </div>
+    <p>• Click on tiles adjacent to the empty space to move them</p>
+    <p>• Arrange numbers from 1 to 8 in order with the empty space in the bottom-right</p>
+    <p>• Challenge yourself to solve it in the fewest moves possible and earn **0.001 SOL**!</p>
+</div>
           </CardContent>
         </Card>
 

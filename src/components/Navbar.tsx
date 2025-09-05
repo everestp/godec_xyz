@@ -109,7 +109,7 @@ const Navbar = () => {
             ))}
 
             <div className="w-full mt-4">
-              <WalletMultiButton style={{ width: '100%' }} />
+            <WalletMultiButton style={{background :'orange', color:"white" }} />
             </div>
           </div>
         )}

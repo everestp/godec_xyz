@@ -19,6 +19,7 @@ import LearnMore from "./pages/LearnMore";
 import Navbar from "./components/Navbar";
 import VotingApp from "./pages/VotingApp";
 import Dashboard from "./pages/DashBoard";
+import TokenSwap from "./pages/Swap";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App = () => (
           <Route path="/lottery" element={<LotteryApp />} />
           <Route path="/vote-app" element={<VotingApp />} />
             <Route path="/learn-more" element={<LearnMore />} />
+              
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

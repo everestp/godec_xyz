@@ -182,7 +182,7 @@ const Dashboard = () => {
         <div className="max-w-md w-full space-y-6 text-center">
           <h2 className="text-2xl font-bold">Connect Your Wallet</h2>
           <p className="text-muted-foreground">Please connect your wallet to view the dashboard.</p>
-          <WalletMultiButton />
+        <WalletMultiButton style={{background :'orange', color:"white" }} />
         </div>
       </div>
     );
@@ -205,7 +205,7 @@ const Dashboard = () => {
               {wallet.publicKey?.toBase58().slice(-4)}
             </p>
           </div>
-          <WalletMultiButton />
+        <WalletMultiButton style={{background :'orange', color:"white" }} />
         </div>
       </header>
 

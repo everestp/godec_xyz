@@ -49,6 +49,13 @@ const Index = () => {
       category: "Vote"
     },
     {
+      title: "Decentralized Blog",
+      description: "Publish content without censorship. Your voice, your platform, with content stored on the blockchain.",
+      image: blogImage,
+      route: "/blog",
+      category: "Content"
+    },
+    {
       title: "Encrypted Chat",
       description: "Secure messaging with friends. Conversations are end-to-end encrypted and managed on-chain.",
       image: chatImage,
@@ -57,46 +64,47 @@ const Index = () => {
     },
     {
       title: "Memory Challenge",
-      description: "Boost your cognitive abilities with memory games. Train your brain while having fun with on-chain scores.",
+      description: "Boost your cognitive abilities with memory games. Train your brain and earn 0.001 SOL after every game you complete",
       image: memoryGameImage,
       route: "game/memory-game",
       category: "Mind Training"
     },
     {
       title: "Puzzle Solver",
-      description: "Enhance logical thinking with challenging puzzles. Progress is saved directly to your wallet.",
+      description: "Enhance logical thinking with challenging puzzles. Train your brain and earn 0.001 SOL after every puzzle you solve.",
       image: puzzleGameImage,
       route: "game/puzzle-game",
       category: "Mind Training"
     },
     {
-      title: "Number Games",
-      description: "Sharpen mathematical skills with engaging number challenges. Your progress is completely decentralized.",
-      image: numberGameImage,
-      route: "game/number-game",
-      category: "Mind Training"
-    },
-    {
-      title: "Logic Challenges",
-      description: "Develop critical thinking through complex logical puzzles. Ideal for career advancement with verifiable on-chain progress.",
-      image: logicGameImage,
-      route: "game/logic-game",
-      category: "Mind Training"
-    },
-    {
-      title: "Decentralized Blog",
-      description: "Publish content without censorship. Your voice, your platform, with content stored on the blockchain.",
-      image: blogImage,
-      route: "/blog",
-      category: "Content"
-    },
-    {
-      title: "Crypto Lottery",
-      description: "Fair and transparent lottery games. Create or join lotteries with cryptocurrency rewards, powered by Solana.",
-      image: lotteryImage,
-      route: "/lottery",
-      category: "Entertainment"
-    }
+  title: "Decentralized Store",
+  description: "Buy and sell goods directly without intermediaries. Powered by smart contracts for secure and transparent transactions.",
+  image: numberGameImage,
+  route: "/store",
+  category: "E-commerce"
+},
+    // {
+    //   title: "Number Games",
+    //   description: "Sharpen mathematical skills with engaging number challenges. Your progress is completely decentralized.",
+    //   image: numberGameImage,
+    //   route: "game/number-game",
+    //   category: "Mind Training"
+    // },
+    // {
+    //   title: "Logic Challenges",
+    //   description: "Develop critical thinking through complex logical puzzles. Ideal for career advancement with verifiable on-chain progress.",
+    //   image: logicGameImage,
+    //   route: "game/logic-game",
+    //   category: "Mind Training"
+    // },
+    
+    // {
+    //   title: "Crypto Lottery",
+    //   description: "Fair and transparent lottery games. Create or join lotteries with cryptocurrency rewards, powered by Solana.",
+    //   image: lotteryImage,
+    //   route: "/lottery",
+    //   category: "Entertainment"
+    // }
   ];
 
   const features = [
@@ -194,7 +202,7 @@ const Index = () => {
                 image={app.image}
                 route={app.route}
                 category={app.category}
-                status={index < 10? "live" : index < 8 ? "beta" : "coming-soon"}
+                status={index < 8? "live" : index < 8 ? "beta" : "coming-soon"}
               />
             </div>
           ))}
@@ -202,24 +210,29 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/50 bg-card/30">
-        <div className="container mx-auto px-4 py-12">
-          <div className="text-center">
-            <h3 className="text-2xl font-bold mb-4">Ready to Go Decentralized?</h3>
-            <p className="text-muted-foreground mb-6">
-              Connect your wallet today and take your first step into a world of true digital freedom and privacy.
+         <footer className="border-t border-border/50 bg-card/30 mt-16">
+    <div className="container mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+        <div className="md:col-span-2 text-center md:text-left">
+            <h3 className="text-3xl font-extrabold  text-primary">
+                Ready to Go Decentralized?
+            </h3>
+            <p className="text-lg text-muted-foreground mb-6 max-w-2xl">
+                Connect your wallet today and take your first step into a world of true digital freedom and privacy.
             </p>
-            <Button className="bitcoin-glow">
-              <Bitcoin className="w-4 h-4 mr-2" />
-              Get Started Today
-            </Button>
-          </div>
-          
-          <div className="mt-12 pt-8 border-t border-border/30 text-center text-sm text-muted-foreground">
-            <p>© {new Date().getFullYear()} godec.xyz - Empowering decentralization, one app at a time.</p>
-          </div>
+         <WalletMultiButton style={{ background: 'orange', color: "white" }} />
         </div>
-      </footer>
+        
+        <div className="md:col-span-1 text-center md:text-right">
+            <div className="flex justify-center md:justify-end space-x-4 mb-4">
+                <a href="#" className="text-muted-foreground hover:text-white transition-colors duration-300">Terms of Service</a>
+                <a href="#" className="text-muted-foreground hover:text-white transition-colors duration-300">Privacy Policy</a>
+            </div>
+            <p className="text-sm text-muted-foreground">
+                © {new Date().getFullYear()} godec.xyz - Empowering decentralization, one app at a time.
+            </p>
+        </div>
+    </div>
+</footer>
     </div>
   );
 };

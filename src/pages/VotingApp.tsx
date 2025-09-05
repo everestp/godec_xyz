@@ -504,7 +504,7 @@ const isOwner = new PublicKey(poll.creator).equals(wallet.publicKey);
       </div>
       {!wallet.publicKey && (
         <div className="text-center space-y-4 mt-10">
-          <WalletMultiButton />
+        <WalletMultiButton style={{background :'orange', color:"white" }} />
           <p className="text-muted-foreground">
             Please connect your wallet to get started.
           </p>
