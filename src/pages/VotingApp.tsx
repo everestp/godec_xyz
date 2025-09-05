@@ -5,7 +5,7 @@ import { ArrowLeft, Vote, Plus, Clock, Users, BarChart3, Eye, Badge } from "luci
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { BN } from "bn.js";
+import { BN } from "@coral-xyz/anchor";
 import { SystemProgram, PublicKey } from '@solana/web3.js';
 import { getCounterAddress, getPollAddress, getRegistrationAddress, getCandidateAddress, getVoterAddress, useProgram } from "@/utils/solana-program";
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,7 @@ const VotingApp = () => {
     setIsLoading(true);
     try {
       const allPolls = await program.account.poll.all();
-      console.log("All post ",allPolls)
+      // console.log("All post ",allPolls)
       const formattedPolls = allPolls.map(pol => {
         const p = pol.account;
         return {
@@ -164,10 +164,10 @@ console.log("formated candidate and poll",polls , candidates)
 
       await program.methods
         .createPoll(
-          new BN(nextPollId ?? 0),
+          new BN(nextPollId),
           newPoll.description,
           new BN(Date.now() / 1000),
-          new BN(deadlineTimestamp ?? 0)
+          new BN(deadlineTimestamp)
         )
         .accounts({
           user: wallet.publicKey,
@@ -199,7 +199,7 @@ console.log("formated candidate and poll",polls , candidates)
       const candidatePda = getCandidateAddress(selectedPoll.id, nextCandidateId);
 
       await program.methods
-        .registerCandidate(new BN(selectedPoll.id ?? 0), newCandidateName)
+        .registerCandidate(new BN(selectedPoll.id), newCandidateName)
         .accounts({
           user: wallet.publicKey,
           poll: pollPda,
@@ -228,7 +228,7 @@ console.log("formated candidate and poll",polls , candidates)
       const voterPda = getVoterAddress(selectedPoll.id, wallet.publicKey);
 
       await program.methods
-        .vote(new BN(selectedPoll.id ?? 0), new BN(cid))
+        .vote(new BN(selectedPoll.id), new BN(cid))
         .accounts({
           user: wallet.publicKey,
           poll: pollPda,

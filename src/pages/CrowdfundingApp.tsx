@@ -1,509 +1,367 @@
-import { useEffect, useState, useMemo } from "react";
-import * as anchor from "@coral-xyz/anchor";
+import React, { useEffect, useState, useMemo } from "react";
 import { Program } from "@coral-xyz/anchor";
-import { PublicKey } from "@solana/web3.js";
-
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Toaster } from "@/components/ui/toaster";
-import { useToast } from "@/components/ui/use-toast";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  ArrowLeft,
-  Search,
-  Plus,
-  Bitcoin,
-  Users,
-  Clock,
-  Target,
-  Wallet,
-  Eye,
-  Trash2,
-} from "lucide-react";
+import * as anchor from "@coral-xyz/anchor";
+import { SystemProgram } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { createCampaign, deleteCampaign, donateToCampaign, getProgramStateAddress, useProgram, withdrawFromCampaign } from "@/utils/solana-program";
-
+import { BN } from 'bn.js';
+import {
+  ArrowLeft, Search, Plus, Bitcoin, Users, Clock,
+  Target, Wallet, Trash2,
+  Badge,
+} from "lucide-react";
+import {
+  getProgramStateAddress,
+  getCampaignAddress,
+  getDonorTransactionAddress,
+  getWithdrawTransactionAddress, // Import the new function for withdrawal transactions
+  useProgram,
+} from "@/utils/solana-program"; // Make sure to update your utils file
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Toaster } from "@/components/ui/sonner";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
 const CrowdfundingApp = () => {
   const { toast } = useToast();
-
-  const [campaigns, setCampaigns] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [programState, setProgramState] = useState(null);
-  const [contributionAmount, setContributionAmount] = useState("");
-  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const wallet = useWallet();
+  const program = useProgram()
+  const [appState, setAppState] = useState("loading"); // 'loading', 'wallet-not-connected', 'uninitialized', 'initialized'
+  const [programState, setProgramState] = useState<any>(null);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newCampaign, setNewCampaign] = useState({
-    title: "",
-    description: "",
-    goal: "",
-    imageUrl: ""
+    title: "", description: "", goal: "", imageUrl: ""
   });
+  const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
+  const [contributionAmount, setContributionAmount] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState("all");
-const program = useProgram()
-const wallet = useWallet()
 
-  const fetchCampaigns = async () => {
+  const fetchProgramStateAndCampaigns = async () => {
     if (!program) return;
-    setLoading(true);
     try {
-      const allCampaigns = await  program.account.campaign.all();;
-      const programState = await program.account.programState.fetch(getProgramStateAddress());
-      setCampaigns(allCampaigns.map(c => ({
+      const state = await program.account.programState.fetch(getProgramStateAddress());
+      if (state.initialized) {
+        const allCampaigns = await program.account.campaign.all();
+        setCampaigns(allCampaigns.map(c => ({
           ...c.account,
           publicKey: c.publicKey,
           isGoalReached: c.account.amountRaised.toNumber() >= c.account.goal.toNumber(),
-      })));
-      setProgramState(programState);
-    } catch (error) {
-      toast({
-        title: "Error fetching data",
-        description: "Failed to fetch campaigns from the blockchain.",
-        variant: "destructive",
-      });
-      console.error(error);
-    } finally {
-      setLoading(false);
+        })));
+        setProgramState(state);
+        setAppState("initialized");
+      } else {
+        setAppState("uninitialized");
+      }
+    } catch (err: any) {
+      if (err.message.includes("Account does not exist")) {
+        setAppState("uninitialized");
+      } else {
+        console.error("Failed to fetch program state or campaigns:", err);
+        setAppState("error");
+        toast({ title: "Error", description: err.message, variant: "destructive" });
+      }
     }
   };
 
-  // useEffect(() => {
-  //   if (program) {
-  //     fetchCampaigns();
-  //   }
-  // }, []);
-
-  const handleCreateCampaign = async (e) => {
-    e.preventDefault();
-    if (!wallet || !wallet.publicKey) {
-      toast({
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet to create a campaign.",
-        variant: "destructive",
-      });
-      return;
+  useEffect(() => {
+    if (program && wallet.publicKey) {
+      setAppState("loading");
+      fetchProgramStateAndCampaigns();
+    } else if (!wallet.publicKey) {
+      setAppState("wallet-not-connected");
     }
+  }, [ wallet.publicKey]);
 
-    if (!newCampaign.title || !newCampaign.description || !newCampaign.goal || !newCampaign.imageUrl) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields",
-        variant: "destructive"
-      });
-      return;
+  const initialize = async () => {
+    if (!program || !wallet.publicKey) {
+      return toast({ title: "Wallet Not Connected", description: "Please connect your wallet to initialize.", variant: "destructive" });
     }
-    
-    setLoading(true);
+    setAppState("loading");
     try {
-      await createCampaign(
-        program,
+      await program.methods.initialize()
+        .accounts({
+          programState: getProgramStateAddress(),
+          deployer: wallet.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      toast({ title: "Program Initialized", description: "You can now create campaigns.", variant: "success" });
+      await fetchProgramStateAndCampaigns();
+    } catch (err: any) {
+      console.error("Initialization failed:", err);
+      toast({ title: "Initialization Failed", description: err.message, variant: "destructive" });
+      setAppState("uninitialized");
+    }
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!wallet.publicKey || !program || !programState) return;
+    if (!newCampaign.title || !newCampaign.description || !newCampaign.goal || !newCampaign.imageUrl) {
+      return toast({ title: "Missing Fields", description: "Please fill in all required fields.", variant: "destructive" });
+    }
+    try {
+      const goalInLamports = new BN(parseFloat(newCampaign.goal) * anchor.web3.LAMPORTS_PER_SOL);
+      const newCampaignId = programState.campaignCount.toNumber() + 1;
+      const campaignPda = getCampaignAddress(newCampaignId);
+      
+      await program.methods.createCampaign(
         newCampaign.title,
         newCampaign.description,
         newCampaign.imageUrl,
-        parseFloat(newCampaign.goal) * anchor.web3.LAMPORTS_PER_SOL,
-        wallet,
-        programState
-      );
-      toast({
-        title: "Campaign Created! 🚀",
-        description: "Your campaign has been created successfully",
-      });
-      await fetchCampaigns();
+        goalInLamports
+      )
+        .accounts({
+          programState: getProgramStateAddress(),
+          campaign: campaignPda,
+          creator: wallet.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      toast({ title: "Campaign Created!", description: "Your campaign is now live.", variant: "success" });
+      await fetchProgramStateAndCampaigns();
       setShowCreateForm(false);
-    } catch (error) {
-      toast({
-        title: "Transaction Failed",
-        description: `Error: ${error.message}`,
-        variant: "destructive"
-      });
-      console.error(error);
-    } finally {
-      setLoading(false);
+      setNewCampaign({ title: "", description: "", goal: "", imageUrl: "" });
+    } catch (err: any) {
+      console.error("Create campaign failed:", err);
+      toast({ title: "Error Creating Campaign", description: err.message, variant: "destructive" });
     }
   };
 
-  const handleDonate = async (campaign) => {
-    if (!wallet || !wallet.publicKey) {
-      toast({
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet to contribute.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleDonate = async (campaign: any) => {
+    if (!wallet.publicKey || !program) return toast({ title: "Wallet", description: "Please connect your wallet.", variant: "destructive" });
+    const amt = parseFloat(contributionAmount);
+    if (isNaN(amt) || amt <= 0) return toast({ title: "Invalid Amount", description: "Please enter a valid SOL amount.", variant: "destructive" });
 
-    if (!contributionAmount || parseFloat(contributionAmount) <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid contribution amount",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setLoading(true);
     try {
-      await donateToCampaign(program, campaign.cid.toNumber(), parseFloat(contributionAmount) * anchor.web3.LAMPORTS_PER_SOL, wallet);
-      toast({
-        title: "Contribution Successful! 🎉",
-        description: `You've contributed ${contributionAmount} SOL to the campaign`,
-      });
-      await fetchCampaigns();
-      setSelectedCampaign(null); // Return to main view after donation
-    } catch (error) {
-      toast({
-        title: "Transaction Failed",
-        description: `Error: ${error.message}`,
-        variant: "destructive"
-      });
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      const campaignId = campaign.cid.toNumber();
+      const amountInLamports = new BN(amt * anchor.web3.LAMPORTS_PER_SOL);
+      const transactionPda = getDonorTransactionAddress(wallet.publicKey, campaignId, campaign.donors.toNumber() + 1);
 
-  const handleWithdraw = async (campaign) => {
-    if (!wallet || !wallet.publicKey) {
-      toast({
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet to withdraw.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Check if the user is the creator before allowing withdrawal
-    if (campaign.creator.toString() !== wallet.publicKey.toString()) {
-      toast({
-        title: "Unauthorized",
-        description: "Only the campaign creator can withdraw funds.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      await withdrawFromCampaign(program, campaign.cid.toNumber(), wallet);
-      toast({
-        title: "Withdrawal Successful! 💰",
-        description: `Funds have been transferred to your wallet`,
-      });
-      await fetchCampaigns();
+      await program.methods
+        .donate(new BN(campaignId), amountInLamports)
+        .accounts({
+          campaign: getCampaignAddress(campaignId),
+          transaction: transactionPda,
+          donor: wallet.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      
+      toast({ title: "Thanks for your support!", description: `Donated ${amt} SOL`, variant: "success" });
+      await fetchProgramStateAndCampaigns();
       setSelectedCampaign(null);
-    } catch (error) {
-      toast({
-        title: "Transaction Failed",
-        description: `Error: ${error.message}`,
-        variant: "destructive"
-      });
-      console.error(error);
-    } finally {
-      setLoading(false);
+      setContributionAmount("");
+    } catch (err: any) {
+      console.error("Donation failed:", err);
+      toast({ title: "Donation Failed", description: err.message, variant: "destructive" });
     }
   };
   
-  const handleDeleteCampaign = async (campaign) => {
-    if (!wallet || !wallet.publicKey) {
-        toast({
-            title: "Wallet Not Connected",
-            description: "Please connect your wallet.",
-            variant: "destructive",
-        });
-        return;
-    }
-
-    if (campaign.creator.toString() !== wallet.publicKey.toString()) {
-        toast({
-            title: "Unauthorized",
-            description: "Only the creator can delete this campaign.",
-            variant: "destructive",
-        });
-        return;
+  const handleWithdraw = async (campaign: any) => {
+    if (!wallet.publicKey || !program) return;
+    if (!wallet.publicKey.equals(campaign.creator)) {
+      return toast({ title: "Unauthorized", description: "Only the campaign creator can withdraw funds.", variant: "destructive" });
     }
     
-    setLoading(true);
+    // The amount to withdraw should be the entire balance, not a specific amount
+    const amountToWithdraw = campaign.balance.toNumber();
+
     try {
-        await deleteCampaign(program, campaign.cid.toNumber(), wallet);
-        toast({
-            title: "Campaign Deleted",
-            description: "The campaign has been successfully deleted.",
-        });
-        await fetchCampaigns();
-        setSelectedCampaign(null);
-    } catch (error) {
-        toast({
-            title: "Transaction Failed",
-            description: `Error: ${error.message}`,
-            variant: "destructive"
-        });
-        console.error(error);
-    } finally {
-        setLoading(false);
+      const campaignId = campaign.cid.toNumber();
+      const withdrawCount = campaign.withdrawals.toNumber() + 1;
+      const withdrawTransactionPda = getWithdrawTransactionAddress(wallet.publicKey, campaignId, withdrawCount);
+
+      await program.methods
+        .withdraw(new BN(campaignId), new BN(amountToWithdraw))
+        .accounts({
+          campaign: getCampaignAddress(campaignId),
+          transaction: withdrawTransactionPda,
+          creator: wallet.publicKey,
+          systemProgram: SystemProgram.programId,
+          programState: getProgramStateAddress(),
+          platformAddress: programState.platformAddress, // Pass the platform address from state
+        })
+        .rpc();
+      
+      toast({ title: "Funds Withdrawn", description: "Your funds have been successfully withdrawn.", variant: "success" });
+      await fetchProgramStateAndCampaigns();
+      setSelectedCampaign(null);
+    } catch (err: any) {
+      console.error("Withdrawal failed:", err);
+      toast({ title: "Withdrawal Failed", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async (campaign: any) => {
+    if (!wallet.publicKey || !wallet.publicKey.equals(campaign.creator)) {
+      return toast({ title: "Unauthorized", description: "Only the campaign creator can delete this campaign.", variant: "destructive" });
+    }
+
+    try {
+      await program.methods
+        .deleteCampaign(new BN(campaign.cid.toNumber()))
+        .accounts({
+          campaign: getCampaignAddress(campaign.cid.toNumber()),
+          creator: wallet.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+
+      toast({ title: "Campaign Deleted", description: "The campaign has been removed.", variant: "success" });
+      await fetchProgramStateAndCampaigns();
+      setSelectedCampaign(null);
+    } catch (err: any) {
+      console.error("Deletion failed:", err);
+      toast({ title: "Deletion Failed", description: err.message, variant: "destructive" });
     }
   };
 
   const filteredCampaigns = useMemo(() => {
-    if (!campaigns) return [];
-    return campaigns.filter(campaign => {
-      const matchesSearch = campaign.title.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const isActive = campaign.active;
-      const isGoalReached = campaign.amountRaised.toNumber() >= campaign.goal.toNumber();
-
-      if (filter === "active") return isActive && !isGoalReached && matchesSearch;
-      if (filter === "funded") return isGoalReached && matchesSearch;
-      if (filter === "expired") return !isActive && matchesSearch;
+    return campaigns.filter((c) => {
+      const matchesSearch = c.title.toLowerCase().includes(searchTerm.toLowerCase());
+      if (filter === "all") return matchesSearch;
+      if (filter === "active") return c.active && !c.isGoalReached && matchesSearch;
+      if (filter === "funded") return c.isGoalReached && matchesSearch;
       return matchesSearch;
     });
-  }, [campaigns, filter, searchTerm]);
+  }, [campaigns, searchTerm, filter]);
 
-  if (false) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 border-4 border-t-4 border-primary rounded-full animate-spin"></div>
-          <p className="text-muted-foreground">Loading campaigns from the blockchain...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const getStatusBadge = (campaign) => {
-    if (!campaign.active) return { text: "Expired", variant: "secondary" };
-    if (campaign.amountRaised.toNumber() >= campaign.goal.toNumber()) return { text: "Funded", variant: "default" };
+  const getStatus = (c: any) => {
+    if (c.isGoalReached) return { text: "Funded", variant: "default" };
+    if (!c.active) return { text: "Inactive", variant: "secondary" };
     return { text: "Active", variant: "outline" };
   };
 
-  const getProgressValue = (campaign) => {
-      if (campaign.goal.isZero()) return 0;
-      return Math.min(100, (campaign.amountRaised.toNumber() / campaign.goal.toNumber()) * 100);
+  const getProgress = (c: any) =>
+    c.goal.isZero() ? 0 : Math.min(100, (c.amountRaised.toNumber() / c.goal.toNumber()) * 100);
+
+  const getRemaining = (c: any) => {
+    const remaining = c.goal.toNumber() - c.amountRaised.toNumber();
+    return (remaining > 0 ? remaining / 1e9 : 0).toFixed(2);
   };
-
-  const getRemainingAmount = (campaign) => {
-    const goal = campaign.goal.toNumber();
-    const raised = campaign.amountRaised.toNumber();
-    return Math.max(0, goal - raised) / 10**9;
-  }
-
-  if (selectedCampaign) {
-    const status = getStatusBadge(selectedCampaign);
+  
+  if (appState === "loading") {
     return (
-      <div className="min-h-screen bg-background text-foreground p-6 md:p-10">
-        <header className="max-w-6xl mx-auto mb-8">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setSelectedCampaign(null)}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Campaigns
-          </Button>
-        </header>
-
-        <main className="max-w-4xl mx-auto">
-          <Card className="rounded-2xl shadow-lg border-2 border-primary/20">
-            <CardHeader>
-              <CardTitle className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-3">
-                {selectedCampaign.title}
-                <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
-                  <Badge variant={status.variant}>{status.text}</Badge>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <img 
-                    src={selectedCampaign.imageUrl} 
-                    alt={selectedCampaign.title}
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                  
-                  <p className="text-muted-foreground">{selectedCampaign.description}</p>
-                  
-                  <div className="text-sm space-y-1">
-                    <p><span className="font-medium">Creator:</span> {selectedCampaign.creator.toBase58()}</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="space-y-4">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Progress</span>
-                      <span className="font-semibold">
-                        {(selectedCampaign.amountRaised.toNumber() / 10**9).toFixed(2)} / {(selectedCampaign.goal.toNumber() / 10**9).toFixed(2)} SOL
-                      </span>
-                    </div>
-                    <Progress 
-                      value={getProgressValue(selectedCampaign)}
-                      className="h-3"
-                    />
-                    <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>{Math.round(getProgressValue(selectedCampaign))}% funded</span>
-                      <span>{getRemainingAmount(selectedCampaign).toFixed(2)} SOL to go</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-center gap-1">
-                        <Bitcoin className="w-4 h-4 text-bitcoin-orange" />
-                        <span className="text-lg font-semibold">{(selectedCampaign.amountRaised.toNumber() / 10**9).toFixed(2)}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">SOL Raised</p>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-center gap-1">
-                        <Users className="w-4 h-4 text-primary" />
-                        <span className="text-lg font-semibold">{selectedCampaign.donors.toNumber()}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Donors</p>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-center gap-1">
-                        <Clock className="w-4 h-4 text-secondary" />
-                        <span className="text-lg font-semibold">{selectedCampaign.active ? "Active" : "Expired"}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Status</p>
-                    </div>
-                  </div>
-                    
-                  {wallet && selectedCampaign.creator.toBase58() === wallet.publicKey.toBase58() && (
-                    <Button
-                      onClick={() => handleDeleteCampaign(selectedCampaign)}
-                      className="w-full bg-red-500 hover:bg-red-600 text-white"
-                      disabled={!selectedCampaign.active}
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Deactivate Campaign
-                    </Button>
-                  )}
-
-                  {wallet && selectedCampaign.active && (
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Input
-                        type="number"
-                        placeholder="Amount in SOL"
-                        value={contributionAmount}
-                        onChange={(e) => setContributionAmount(e.target.value)}
-                        className="flex-1"
-                        step="0.001"
-                        min="0"
-                      />
-                      <Button 
-                        onClick={() => handleDonate(selectedCampaign)}
-                        className="w-full sm:w-auto px-6"
-                      >
-                        <Target className="w-4 h-4 mr-2" />
-                        Contribute
-                      </Button>
-                    </div>
-                  )}
-
-                  {wallet && selectedCampaign.creator.toBase58() === wallet.publicKey.toBase58() && 
-                   !selectedCampaign.active && (
-                    <Button
-                      onClick={() => handleWithdraw(selectedCampaign)}
-                      className="w-full bg-accent hover:bg-accent/90"
-                      disabled={selectedCampaign.withdrawals.toNumber() > 0}
-                    >
-                      <Wallet className="w-4 h-4 mr-2" />
-                      Withdraw {(selectedCampaign.amountRaised.toNumber() / 10**9).toFixed(2)} SOL
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </main>
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="space-y-4 text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+        <Toaster />
       </div>
     );
   }
 
-  if (showCreateForm) {
+  if (appState === "wallet-not-connected") {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-6">
+        <div className="max-w-md w-full space-y-6 text-center">
+          <h2 className="text-2xl font-bold">Connect Your Wallet</h2>
+          <p>Please connect your Solana wallet to get started.</p>
+          <WalletMultiButton />
+        </div>
+        <Toaster />
+      </div>
+    );
+  }
+
+  if (appState === "uninitialized") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-6">
+        <div className="max-w-md w-full space-y-6 text-center">
+          <h2 className="text-2xl font-bold">Program Not Initialized</h2>
+          <p>Please initialize the program to start using the platform.</p>
+          <Button className="w-full" onClick={initialize}>Initialize Program</Button>
+        </div>
+        <Toaster />
+      </div>
+    );
+  }
+
+  if (selectedCampaign) {
+    const c = selectedCampaign;
+    const status = getStatus(c);
+    const isCreator = wallet.publicKey?.equals(c.creator);
+    
     return (
       <div className="min-h-screen bg-background text-foreground p-6 md:p-10">
-        <header className="max-w-6xl mx-auto mb-8">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setShowCreateForm(false)}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Campaigns
+        <header className="max-w-4xl mx-auto mb-6">
+          <Button variant="ghost" size="sm" onClick={() => setSelectedCampaign(null)} className="flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4" /> Back
           </Button>
         </header>
-
-        <main className="max-w-2xl mx-auto">
-          <Card className="rounded-2xl shadow-lg border-2 border-primary/20">
+        <main className="max-w-4xl mx-auto space-y-6">
+          <Card>
             <CardHeader>
-              <CardTitle>Create New Campaign</CardTitle>
+              <CardTitle className="flex items-center justify-between">
+                {c.title} <Badge variant={status.variant}>{status.text}</Badge>
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <form onSubmit={handleCreateCampaign} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Campaign Title *</Label>
-                  <Input
-                    id="title"
-                    placeholder="Enter campaign title..."
-                    value={newCampaign.title}
-                    onChange={(e) => setNewCampaign(prev => ({ ...prev, title: e.target.value }))}
-                  />
+            <CardContent className="space-y-4">
+              <img src={c.imageUrl} alt={c.title} className="w-full h-48 object-cover rounded-lg" />
+              <p className="text-muted-foreground">{c.description}</p>
+              <div className="space-y-2">
+                <p><strong>Creator:</strong> {c.creator.toBase58()}</p>
+                <div>
+                  <span className="font-semibold">
+                    { (c.amountRaised.toNumber() / 1e9).toFixed(2) } / { (c.goal.toNumber() / 1e9).toFixed(2) } SOL
+                  </span>
+                  <Progress value={getProgress(c)} className="h-3 mt-1" />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    { getProgress(c).toFixed(0) }% funded — { getRemaining(c) } SOL to go
+                  </p>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description *</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Describe your campaign..."
-                    value={newCampaign.description}
-                    onChange={(e) => setNewCampaign(prev => ({ ...prev, description: e.target.value }))}
-                    rows={4}
-                  />
+              </div>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <Bitcoin className="mx-auto w-5 h-5 text-bitcoin-orange" />
+                  <p className="text-lg font-semibold">{ (c.amountRaised.toNumber() / 1e9).toFixed(2) }</p>
+                  <p className="text-xs text-muted-foreground">SOL Raised</p>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="goal">Funding Goal (SOL) *</Label>
+                <div>
+                  <Users className="mx-auto w-5 h-5 text-primary" />
+                  <p className="text-lg font-semibold">{ c.donors.toNumber() }</p>
+                  <p className="text-xs text-muted-foreground">Donors</p>
+                </div>
+                <div>
+                  <Clock className="mx-auto w-5 h-5 text-secondary" />
+                  <p className="text-lg font-semibold">{ c.active ? "Active" : "Inactive" }</p>
+                  <p className="text-xs text-muted-foreground">Status</p>
+                </div>
+              </div>
+              {isCreator && c.active && (
+                <div className="flex flex-col space-y-2">
+                   <Button className="w-full bg-blue-500 text-white" onClick={() => handleWithdraw(c)}>
+                    <Wallet className="w-4 h-4 mr-2" /> Withdraw { (c.balance.toNumber() / 1e9).toFixed(2) } SOL
+                  </Button>
+                  <Button className="w-full bg-red-500 text-white" onClick={() => handleDelete(c)}>
+                    <Trash2 className="w-4 h-4 mr-2" /> Deactivate Campaign
+                  </Button>
+                </div>
+              )}
+              {c.active && !isCreator && (
+                <div className="flex space-x-2">
                   <Input
-                    id="goal"
                     type="number"
-                    placeholder="100"
-                    value={newCampaign.goal}
-                    onChange={(e) => setNewCampaign(prev => ({ ...prev, goal: e.target.value }))}
+                    placeholder="Amount in SOL"
+                    value={contributionAmount}
+                    onChange={e => setContributionAmount(e.target.value)}
+                    className="flex-1"
                     step="0.001"
                     min="0"
                   />
+                  <Button onClick={() => handleDonate(c)}>
+                    <Target className="w-4 h-4 mr-1" /> Contribute
+                  </Button>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="image">Image URL *</Label>
-                  <Input
-                    id="image"
-                    placeholder="https://example.com/image.jpg"
-                    value={newCampaign.imageUrl}
-                    onChange={(e) => setNewCampaign(prev => ({ ...prev, imageUrl: e.target.value }))}
-                  />
-                </div>
-
-                <Button type="submit" className="w-full">
-                  Create Campaign
-                </Button>
-              </form>
+              )}
             </CardContent>
           </Card>
         </main>
@@ -513,144 +371,94 @@ const wallet = useWallet()
 
   return (
     <div className="min-h-screen bg-background text-foreground p-6 md:p-10">
-      <header className="max-w-6xl mx-auto mb-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2 sm:mb-4 bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
-            Solana Crowdfunding
-          </h1>
-          <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
-            Support innovative projects with SOL. Transparent, secure, and decentralized funding on the Solana blockchain.
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative w-full sm:w-auto">
+      <header className="max-w-6xl mx-auto mb-6">
+        <div className="flex flex-col md:flex-row items-center justify-between mb-4">
+          <div className="space-y-4 md:space-y-0 md:flex md:space-x-4 items-center">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search campaigns..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full sm:w-64"
+                onChange={e => setSearchTerm(e.target.value)}
+                className="pl-10 w-full md:w-64"
               />
             </div>
-            <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
-              <Button
-                variant={filter === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter("all")}
-              >
-                All
-              </Button>
-              <Button
-                variant={filter === "active" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter("active")}
-              >
-                Active
-              </Button>
-              <Button
-                variant={filter === "funded" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter("funded")}
-              >
-                Funded
-              </Button>
-              <Button
-                variant={filter === "expired" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter("expired")}
-              >
-                Expired
-              </Button>
+            <div className="flex space-x-2">
+              {["all", "active", "funded"].map(key => (
+                <Button
+                  key={key}
+                  variant={filter === key ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFilter(key)}
+                >
+                  {key.charAt(0).toUpperCase() + key.slice(1)}
+                </Button>
+              ))}
             </div>
           </div>
-
-          <Button onClick={() => setShowCreateForm(true)} className="w-full sm:w-auto flex items-center gap-2 mt-2 sm:mt-0">
-            <Plus className="w-4 h-4" />
-            Create Campaign
+          <Button onClick={() => setShowCreateForm(true)} className="flex items-center space-x-2">
+            <Plus className="w-4 h-4" /> <span>Create Campaign</span>
           </Button>
+        </div>
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-primary">
+            Solana Crowdfunding
+          </h1>
+          <p className="text-muted-foreground mt-2">Support great ideas with SOL</p>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto">
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {filteredCampaigns.map((campaign) => {
-            const status = getStatusBadge(campaign);
+      {showCreateForm && (
+        <div className="max-w-2xl mx-auto mb-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Create New Campaign</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <form onSubmit={handleCreate} className="space-y-4">
+                <div><Label>Title *</Label><Input value={newCampaign.title} onChange={e => setNewCampaign(prev => ({ ...prev, title: e.target.value }))} /></div>
+                <div><Label>Description *</Label><Textarea value={newCampaign.description} onChange={e => setNewCampaign(prev => ({ ...prev, description: e.target.value }))} rows={3} /></div>
+                <div><Label>Goal (in SOL) *</Label><Input type="number" step="0.001" min="0" value={newCampaign.goal} onChange={e => setNewCampaign(prev => ({ ...prev, goal: e.target.value }))} /></div>
+                <div><Label>Image URL *</Label><Input value={newCampaign.imageUrl} onChange={e => setNewCampaign(prev => ({ ...prev, imageUrl: e.target.value }))} /></div>
+                <div className="flex space-x-2"><Button type="submit" className="flex-1">Submit</Button><Button variant="ghost" onClick={() => setShowCreateForm(false)}>Cancel</Button></div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <main className="max-w-6xl mx-auto grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {filteredCampaigns.length > 0 ? (
+          filteredCampaigns.map((c: any) => {
+            const s = getStatus(c);
             return (
-              <Card key={campaign.cid.toString()} className="card-hover">
+              <Card key={c.cid.toString()} className="hover:shadow-lg cursor-pointer" onClick={() => setSelectedCampaign(c)}>
                 <CardHeader>
-                  <div className="flex flex-col items-start gap-2">
-                    <div className="flex flex-wrap items-center gap-3 mb-2">
-                      <CardTitle className="text-xl">{campaign.title}</CardTitle>
-                      <Badge variant={status.variant}>{status.text}</Badge>
-                    </div>
-                    <p className="text-muted-foreground line-clamp-2">{campaign.description}</p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Created by {campaign.creator.toBase58().slice(0, 4)}...{campaign.creator.toBase58().slice(-4)}
-                    </p>
+                  <div className="flex justify-between items-center">
+                    <CardTitle>{c.title}</CardTitle>
+                    <Badge variant={s.variant}>{s.text}</Badge>
                   </div>
+                  <p className="text-muted-foreground line-clamp-2">{c.description}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Creator: {c.creator.toBase58().slice(0, 4)}...{c.creator.toBase58().slice(-4)}
+                  </p>
                 </CardHeader>
-                
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-center gap-1">
-                        <Bitcoin className="w-4 h-4 text-bitcoin-orange" />
-                        <span className="text-lg font-semibold">{(campaign.amountRaised.toNumber() / 10**9).toFixed(2)}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">SOL Raised</p>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-center gap-1">
-                        <Users className="w-4 h-4 text-primary" />
-                        <span className="text-lg font-semibold">{campaign.donors.toNumber()}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Donors</p>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-center gap-1">
-                        <Clock className="w-4 h-4 text-secondary" />
-                        <span className="text-lg font-semibold">{campaign.active ? "Active" : "Expired"}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Status</p>
-                    </div>
+                <CardContent>
+                  <div className="grid grid-cols-3 text-center">
+                    <div><Bitcoin className="mx-auto w-5 h-5 text-bitcoin-orange" /><p>{(c.amountRaised.toNumber() / 1e9).toFixed(2)}</p><p className="text-xs text-muted-foreground">Raised</p></div>
+                    <div><Users className="mx-auto w-5 h-5 text-primary" /><p>{c.donors.toNumber()}</p><p className="text-xs text-muted-foreground">Donors</p></div>
+                    <div><Clock className="mx-auto w-5 h-5 text-secondary" /><p>{c.active ? "Active" : "Inactive"}</p><p className="text-xs text-muted-foreground">Status</p></div>
                   </div>
-                  
-                  <div className="flex justify-center mt-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedCampaign(campaign)}
-                      className="w-full"
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View Details
-                    </Button>
+                  <div className="mt-2 text-center">
+                    <Button variant="outline" size="sm">View</Button>
                   </div>
                 </CardContent>
               </Card>
             );
-          })}
-        </div>
-
-        {filteredCampaigns.length === 0 && (
-          <div className="text-center py-12">
-            <Target className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No campaigns found</h3>
-            <p className="text-muted-foreground">
-              {searchTerm ? `No campaigns match "${searchTerm}"` : 
-               filter === "all" ? "No campaigns have been created yet." : 
-               `No ${filter} campaigns available.`}
-            </p>
-            {wallet && (
-                <Button onClick={() => setShowCreateForm(true)} className="mt-4">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Your First Campaign
-                </Button>
-            )}
+          })
+        ) : (
+          <div className="col-span-full text-center py-12">
+            <p className="text-lg">No campaigns found{searchTerm ? ` for “${searchTerm}”` : filter !== "all" ? ` (${filter})` : ""}.</p>
           </div>
         )}
       </main>
@@ -658,4 +466,5 @@ const wallet = useWallet()
     </div>
   );
 };
- export default  CrowdfundingApp
+
+export default CrowdfundingApp;

@@ -1,16 +1,13 @@
-
-
 import { AnchorProvider, Program, utils, web3 } from '@project-serum/anchor';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useWallet } from '@solana/wallet-adapter-react';
 import idl from '../idl/godecidl.json';
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
 import { useMemo } from 'react';
 import { Buffer } from 'buffer';
-import { BN } from '@coral-xyz/anchor';
+import { BN } from 'bn.js';
 
 const programID = new web3.PublicKey('73KCAwnfEwU7LPX7Ri2FXHvp1NZtCyRUc6EJVvm59oEs');
 
- 
 const RPC_URL ="https://api.devnet.solana.com"
 // A custom hook to get the program instance
 export const useProgram = () => {
@@ -34,12 +31,6 @@ export const useProgram = () => {
 
   return program;
 };
-
-
-
-
-
-
 
 // Returns the PDA for a note.
 export const getNoteAddress = (author: web3.PublicKey, title: string): web3.PublicKey => {
@@ -69,22 +60,43 @@ export const getProgramStateAddress = (): web3.PublicKey => {
 };
 
 // Returns the PDA for a specific campaign.
-export const getCampaignAddress = (campaignId: number): web3.PublicKey => {
-  const [pda] = web3.PublicKey.findProgramAddressSync(
-    [utils.bytes.utf8.encode('campaign'), new BN(campaignId).toBuffer('le', 8)],
-    programID
+export const getCampaignAddress = (campaignId: number): PublicKey => {
+  // Input validation
+  if (!Number.isInteger(campaignId) || campaignId < 0) {
+    throw new Error('Invalid campaignId: must be a non-negative integer');
+  }
+
+  const [pda] = PublicKey.findProgramAddressSync(
+    [
+      utils.bytes.utf8.encode('campaign'), // Use Buffer.from for UTF-8 encoding
+        new BN(campaignId).toArrayLike(Buffer, "le", 8), // This is the correct way
+    ],
+    programID // Ensure programID is defined and imported
   );
+
   return pda;
 };
 
+
 // Returns the PDA for a donor's transaction.
-export const getDonorTransactionAddress = (donor: web3.PublicKey, cid: number, donorCount: number): web3.PublicKey => {
+export const getDonorTransactionAddress = (
+  donor: web3.PublicKey, 
+  cid: number, 
+  donorCount: number
+): web3.PublicKey => {
+  if (!Number.isInteger(cid) || cid < 0) {
+    throw new Error('Invalid cid: must be a non-negative integer');
+  }
+  if (!Number.isInteger(donorCount) || donorCount < 0) {
+    throw new Error('Invalid donorCount: must be a non-negative integer');
+  }
+  
   const [pda] = web3.PublicKey.findProgramAddressSync(
     [
       utils.bytes.utf8.encode('donor'),
       donor.toBuffer(),
-      new BN(cid).toBuffer('le', 8),
-      new BN(donorCount).toBuffer('le', 8),
+      new BN(cid).toArrayLike(Buffer, 'le', 8),
+      new BN(donorCount).toArrayLike(Buffer, 'le', 8),
     ],
     programID
   );
@@ -92,29 +104,29 @@ export const getDonorTransactionAddress = (donor: web3.PublicKey, cid: number, d
 };
 
 // Returns the PDA for a withdrawal transaction.
-export const getWithdrawTransactionAddress = (creator: web3.PublicKey, cid: number, withdrawalCount: number): web3.PublicKey => {
+export const getWithdrawTransactionAddress = (
+  creator: web3.PublicKey, 
+  cid: number, 
+  withdrawalCount: number
+): web3.PublicKey => {
+  if (!Number.isInteger(cid) || cid < 0) {
+    throw new Error('Invalid cid: must be a non-negative integer');
+  }
+  if (!Number.isInteger(withdrawalCount) || withdrawalCount < 0) {
+    throw new Error('Invalid withdrawalCount: must be a non-negative integer');
+  }
+  
   const [pda] = web3.PublicKey.findProgramAddressSync(
     [
       utils.bytes.utf8.encode('withdraw'),
       creator.toBuffer(),
-      new BN(cid).toBuffer('le', 8),
-      new BN(withdrawalCount).toBuffer('le', 8),
+      new BN(cid).toArrayLike(Buffer, 'le', 8),
+      new BN(withdrawalCount).toArrayLike(Buffer, 'le', 8),
     ],
     programID
   );
   return pda;
 };
-
-// Returns the PDA for a specific poll.
-
-
-
-
-
-
-
-
-
 
 export function getThreadAddress(sender: PublicKey, recipient: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
@@ -144,7 +156,6 @@ export function getMessageAddress(
   )[0];
 }
 
-
 // Blog App
 // Returns the PDA for a user's profile.
 export const getUserAddress = (authority: web3.PublicKey): web3.PublicKey => {
@@ -167,23 +178,7 @@ export const getPostAddress = (authority: PublicKey, title: string) => {
   )[0];
 };
 
-
-
-
-
-// export const initUser = async (name: string, avatar: string) => {
-
-// const program = useProgram()
-//   if (!program || !wallet) throw new Error("Wallet or program not ready");
-
-//   const userAccount = getUserAddress(wallet.publicKey);
-
- 
-// };
-
  //Voting Dapp 
- 
-
 export const getCounterAddress = () => {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("counter")],
@@ -224,21 +219,6 @@ export const getVoterAddress = (pollId: number, user: PublicKey) => {
 
 
 //crowdfunding
-
-// // Returns the PDA for a withdrawal transaction.
-// export const getWithdrawTransactionAddress = (creator: PublicKey, cid: number, withdrawalCount: number): PublicKey => {
-//   const [pda] = PublicKey.findProgramAddressSync(
-//     [
-//       anchor.utils.bytes.utf8.encode('withdraw'),
-//       creator.toBuffer(),
-//       new BN(cid).toBuffer('le', 8),
-//       new BN(withdrawalCount).toBuffer('le', 8),
-//     ],
-//     programID
-//   );
-//   return pda;
-// };
-
 export const getProgramState = async (program: Program<any>) => {
   return await program.account.programState.fetch(getProgramStateAddress());
 };
@@ -251,29 +231,6 @@ export const getAllCampaigns = async (program: Program<any>) => {
   return await program.account.campaign.all();
 };
 
-export const createCampaign = async (
-  program: Program<any>,
-  title: string,
-  description: string,
-  imageUrl: string,
-  goal: number,
-  wallet: any,
-  programState: any
-) => {
-  const goalInLamports = new BN(goal);
-  const nextCampaignId = new BN(programState.campaignCount + 1);
-  const campaignPda = getCampaignAddress(nextCampaignId.toNumber());
-
-  return await program.methods
-    .createCampaign(title, description, imageUrl, goalInLamports)
-    .accounts({
-      programState: getProgramStateAddress(),
-      campaign: campaignPda,
-      creator: wallet.publicKey,
-      systemProgram: SystemProgram.programId,
-    })
-    .rpc();
-};
 
 export const donateToCampaign = async (
   program: Program<any>,
