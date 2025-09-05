@@ -14,27 +14,13 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { Link, useLocation } from "react-router-dom"; // Import Link and useLocation from react-router-dom
+import { useWallet } from "@solana/wallet-adapter-react"; // Import useWallet hook
 
 const Navbar = () => {
-  const [isWalletConnected, setIsWalletConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currentPath, setCurrentPath] = useState("/");
-
-  useEffect(() => {
-    setCurrentPath(window.location.pathname);
-  }, []);
-
-  const handleWalletConnect = () => {
-    if (!isWalletConnected) {
-      // Mock wallet connection
-      setWalletAddress("0x742d...8f2e");
-      setIsWalletConnected(true);
-    } else {
-      setWalletAddress("");
-      setIsWalletConnected(false);
-    }
-  };
+  const location = useLocation(); // Use the useLocation hook to get the current path
+  const { connected, publicKey } = useWallet(); // Get connection state and public key from the hook
 
   const navItems = [
     { href: "/", icon: Home, label: "Home" },
@@ -45,42 +31,46 @@ const Navbar = () => {
     // { href: "/promotions", icon: Megaphone, label: "Promotions" },
   ];
 
+  const handleMobileMenuClick = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <nav className="bg-card/80 backdrop-blur-md border-b border-border sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <a href="/" className="flex items-center space-x-3">
+          <Link to="/" className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-gradient-bitcoin rounded-lg flex items-center justify-center">
               <Wallet className="w-5 h-5 text-primary-foreground" />
             </div>
             <span className="text-xl font-bold gradient-bitcoin bg-clip-text text-transparent">
               godec.xyz
             </span>
-          </a>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => (
-              <a
+              <Link
                 key={item.href}
-                href={item.href}
+                to={item.href}
                 className={cn(
                   "flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors",
-                  currentPath === item.href
+                  location.pathname === item.href
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-accent/10"
                 )}
               >
                 <item.icon className="w-4 h-4" />
                 <span>{item.label}</span>
-              </a>
+              </Link>
             ))}
           </div>
 
           {/* Wallet Connection */}
           <div className="flex items-center space-x-4">
-           <WalletMultiButton style={{background :'orange', color:"white" }}/>
+            <WalletMultiButton style={{ background: 'orange', color: "white" }} />
 
             {/* Mobile Menu Button */}
             <Button
@@ -102,39 +92,25 @@ const Navbar = () => {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-border mt-2 pt-4 pb-4 space-y-2">
             {navItems.map((item) => (
-              <a
+              <Link
                 key={item.href}
-                href={item.href}
+                to={item.href}
                 className={cn(
                   "flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors w-full",
-                  currentPath === item.href
+                  location.pathname === item.href
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-accent/10"
                 )}
-                onClick={() => setIsMobileMenuOpen(false)}
+                onClick={handleMobileMenuClick}
               >
                 <item.icon className="w-4 h-4" />
                 <span>{item.label}</span>
-              </a>
+              </Link>
             ))}
 
-            <Button
-              onClick={handleWalletConnect}
-              variant={isWalletConnected ? "outline" : "default"}
-              className={cn("w-full mt-4", isWalletConnected ? "" : "bitcoin-glow")}
-            >
-              <Wallet className="w-4 h-4 mr-2" />
-              {isWalletConnected ? (
-                <div className="flex items-center space-x-2">
-                  <Badge variant="secondary" className="text-xs">
-                    {walletAddress}
-                  </Badge>
-                  <span>Disconnect</span>
-                </div>
-              ) : (
-                "Connect Wallet"
-              )}
-            </Button>
+            <div className="w-full mt-4">
+              <WalletMultiButton style={{ width: '100%' }} />
+            </div>
           </div>
         )}
       </div>
