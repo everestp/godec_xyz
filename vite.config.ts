@@ -2,34 +2,52 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
-import rollupNodePolyfills from "rollup-plugin-node-polyfills";
-
+// <-- Add this import
+import { nodePolyfills } from 'vite-plugin-node-polyfills'
+// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8080,
+    port: 5173,
   },
   plugins: [
+      nodePolyfills({}),
     react(),
-    mode === "development" && componentTagger(),
+    mode === 'development' &&
+    componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  optimizeDeps: {
-    esbuildOptions: {
-      define: {
-        global: "globalThis", // polyfill global
-      },
-    },
+  // Add this section to resolve browser compatibility issues
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(mode),
+    'process.env.ANCHOR_BROWSER': JSON.stringify(true),
   },
   build: {
     rollupOptions: {
+      external: ['buffer'],
       plugins: [
-        rollupNodePolyfills(),
+        nodePolyfills() // <-- Use the imported polyfills here
       ],
     },
   },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: 'globalThis'
+      },
+      plugins: [
+        {
+          name: 'buffer-and-process-shim',
+          setup(build) {
+            // Note: This part might also need refactoring to use fs.promises
+            // if it's running in an ESM context and fs is not available.
+          }
+        }
+      ]
+    }
+  }
 }));
