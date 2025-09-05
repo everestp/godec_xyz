@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bitcoin, Github, Linkedin, Code, Layers, ShieldCheck, Zap } from "lucide-react";
+import { Bitcoin, Github, Linkedin, Code, Layers, ShieldCheck, Zap, Link } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
@@ -126,18 +126,18 @@ const LearnMore = () => {
                 <p className="text-sm text-muted-foreground mb-4">
     Everest Paudel is a passionate software developer specializing in decentralized applications (dApps) and infrastructure automation. With a focus on the Solana ecosystem, I build performant, user-friendly, and privacy-focused tools that push the boundaries of Web3 and cloud computing.
 </p>
-                <div className="flex justify-center md:justify-start space-x-4">
-                  <a href="#" target="_blank" rel="noopener noreferrer">
-                    <Button variant="outline" className="flex items-center gap-2">
-                      <Github className="w-5 h-5" /> GitHub
-                    </Button>
-                  </a>
-                  <a href="#" target="_blank" rel="noopener noreferrer">
-                    <Button variant="outline" className="flex items-center gap-2">
-                      <Linkedin className="w-5 h-5" /> LinkedIn
-                    </Button>
-                  </a>
-                </div>
+                 <div className="flex justify-center md:justify-start space-x-4">
+      <a href="https://github.com/everestp" target="_blank" rel="noopener noreferrer">
+        <Button variant="outline" className="flex items-center gap-2">
+          <Github className="w-5 h-5" /> GitHub
+        </Button>
+      </a>
+      <a href="https://linkedin.com/in/everestp" target="_blank" rel="noopener noreferrer">
+        <Button variant="outline" className="flex items-center gap-2">
+          <Linkedin className="w-5 h-5" /> LinkedIn
+        </Button>
+      </a>
+    </div>
               </div>
             </div>
           </Card>
