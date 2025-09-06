@@ -148,7 +148,7 @@ const Index = () => {
             </h1>
             
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 leading-relaxed">
-              Experience true digital freedom with a suite of mini-apps built on the **Solana blockchain**. 
+              Experience true digital freedom with a suite of mini-apps built on the  <span className="text-primary font-bold"> Solana blockchain</span>. 
               Simply connect your wallet to access your data and progress across all our tools.
             </p>
             

@@ -41,7 +41,7 @@ const LearnMore = () => {
         <section className="text-center mb-16">
           <h2 className="text-4xl font-bold mb-4">The Vision: <span className="text-primary">Go Decentralized</span></h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            The core objective of godec.xyz is to make the power of decentralized applications accessible to everyone. The name **"GoDec"** stands for **"Go Decentralized,"** representing our mission to build simple, everyday tools on a decentralized network. We believe that users should have complete ownership and control over their data, free from censorship and central authorities.
+            The core objective of godec.xyz is to make the power of decentralized applications accessible to everyone. The name  <span className="text-primary">GoDec</span>  stands for  <span className="text-primary">Go Decentralized</span> representing our mission to build simple, everyday tools on a decentralized network. We believe that users should have complete ownership and control over their data, free from censorship and central authorities.
           </p>
         </section>
 
