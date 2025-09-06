@@ -7,6 +7,7 @@ import { Bitcoin, Shield, Zap, Users, Brain, Coins } from "lucide-react";
 import todoImage from "@/assets/todo-card.jpg";
 import notesImage from "@/assets/notes-card.jpg";
 import crowdfundingImage from "@/assets/crowdfunding-card.jpg";
+import votingImage from "@/assets/voting.png";
 import chatImage from "@/assets/chat-card.jpg";
 import memoryGameImage from "@/assets/memory-game-card.jpg";
 import puzzleGameImage from "@/assets/puzzle-game-card.jpg";
@@ -43,8 +44,8 @@ const Index = () => {
     },
     {
       title: "Voting Dapp",
-      description: "Fund projects with cryptocurrency. Transparent, decentralized funding on Solana for innovative ideas.",
-      image: crowdfundingImage,
+      description: "Enable secure and transparent voting using blockchain. Your vote is anonymous and verifiable..",
+      image: votingImage,
       route: "/vote-app",
       category: "Vote"
     },
