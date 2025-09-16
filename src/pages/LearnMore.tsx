@@ -54,7 +54,7 @@ const LearnMore = () => {
             </CardHeader>
             <CardContent>
               <p className="text-md text-muted-foreground mb-6 text-center max-w-3xl mx-auto">
-                In this ecosystem, your **public key is your identity**. It acts as your unique, decentralized key to access data and services. Instead of creating a username and password, you simply connect your crypto wallet. Your public key is then used to cryptographically sign transactions and prove ownership of your data, ensuring that only you can access it. This method provides superior security and eliminates the need for a central database of personal information.
+                In this ecosystem, your  <span className="text-primary">public key is your identity</span>. It acts as your unique, decentralized key to access data and services. Instead of creating a username and password, you simply connect your crypto wallet. Your public key is then used to cryptographically sign transactions and prove ownership of your data, ensuring that only you can access it. This method provides superior security and eliminates the need for a central database of personal information.
               </p>
               <div className="flex justify-center items-center">
                 <img 
@@ -81,7 +81,7 @@ const LearnMore = () => {
               <CardTitle className="text-xl font-bold mb-2">Solana Blockchain</CardTitle>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  We leverage the **Solana blockchain** for its high throughput and extremely low transaction fees. This makes it a perfect foundation for building scalable, everyday applications where a fast and affordable user experience is key.
+                  We leverage the <span className="text-primary">Solana blockchain</span> for its high throughput and extremely low transaction fees. This makes it a perfect foundation for building scalable, everyday applications where a fast and affordable user experience is key.
                 </p>
               </CardContent>
             </Card>
@@ -92,7 +92,7 @@ const LearnMore = () => {
               <CardTitle className="text-xl font-bold mb-2">Rust & TypeScript</CardTitle>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  The core logic and smart contracts are written in **Rust**, a language known for its performance and security. The frontend is built with **TypeScript** and **React**, ensuring a type-safe, robust, and highly maintainable codebase.
+                  The core logic and smart contracts are written in  <span className="text-primary">Rust</span>, a language known for its performance and security. The frontend is built with <span className="text-primary">Typescript</span> and <span className="text-primary">React</span>, ensuring a type-safe, robust, and highly maintainable codebase.
                 </p>
               </CardContent>
             </Card>

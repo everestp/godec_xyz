@@ -210,7 +210,7 @@ const transferSolWithPrivateKey = async (amountInSol, recipientPublicKey=wallet.
             Memory Challenge
         </h1>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Test your memory by matching pairs of cards. Flip cards to reveal symbols, find matching pairs, and earn **0.001 SOL** on every game completion.
+            Test your memory by matching pairs of cards. Flip cards to reveal symbols, find matching pairs, and earn<span className="text-primary">0.001 SOL</span> on every game completion.
         </p>
     </div>
 </header>
@@ -322,7 +322,7 @@ const transferSolWithPrivateKey = async (amountInSol, recipientPublicKey=wallet.
     <ul className="space-y-2 text-muted-foreground">
       <li>• Click on cards to flip them and reveal the symbols</li>
       <li>• Find matching pairs by remembering where symbols are located</li>
-      <li>• Match all 8 pairs to win the game and earn **0.001 SOL**</li>
+      <li>• Match all 8 pairs to win the game and earn<span className="text-primary">0.001 SOL</span></li>
       <li>• Try to complete the challenge in the fewest moves possible</li>
     </ul>
 </CardContent>

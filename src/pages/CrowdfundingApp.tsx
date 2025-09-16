@@ -322,7 +322,7 @@ const CrowdfundingApp = () => {
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <Bitcoin className="mx-auto w-5 h-5 text-bitcoin-orange" />
-                  <p className="text-lg font-semibold">{ (c.amountRaised.toNumber() / 1e9).toFixed(2) }</p>
+                  <p className="text-lg font-semibold">{ (c.amountRaised.toNumber() / 1e9).toFixed(4) }</p>
                   <p className="text-xs text-muted-foreground">SOL Raised</p>
                 </div>
                 <div>

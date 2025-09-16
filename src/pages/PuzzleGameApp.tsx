@@ -221,7 +221,7 @@ const transferSolWithPrivateKey = async (amountInSol, recipientPublicKey=wallet.
             Sliding Puzzle
         </h1>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Arrange the numbered tiles in order from 1 to 8. Click on tiles adjacent to the empty space to move them and earn **0.001 SOL** on every game completion.
+            Arrange the numbered tiles in order from 1 to 8. Click on tiles adjacent to the empty space to move them and earn<span className="text-primary">0.001 SOL</span> on every game completion.
         </p>
     </div>
 </header>
@@ -351,7 +351,7 @@ const transferSolWithPrivateKey = async (amountInSol, recipientPublicKey=wallet.
             <div className="space-y-2 text-muted-foreground text-sm">
     <p>• Click on tiles adjacent to the empty space to move them</p>
     <p>• Arrange numbers from 1 to 8 in order with the empty space in the bottom-right</p>
-    <p>• Challenge yourself to solve it in the fewest moves possible and earn **0.001 SOL**!</p>
+    <p>• Challenge yourself to solve it in the fewest moves possible and earn<span className="text-primary">0.001 SOL</span>!</p>
 </div>
           </CardContent>
         </Card>
