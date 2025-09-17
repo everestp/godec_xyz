@@ -64,9 +64,14 @@ Our mission is to make Web3 accessible to everyone, guiding newcomers into decen
    - Smart contracts are written in Rust and deployed via [Solana Playground](https://beta.solpg.io/).
   
 
-### Frontend
-1. **Setup TypeScript Vite App**:
-   - Clone the repository  d.
-   - Install dependencies:
-     ```bash
-     npm install
+### 🚀 Frontend Setup (Vite + React + TypeScript)
+
+Follow the steps below to set up and run the frontend app.
+
+---
+
+#### 1. Clone the Repository
+
+```bash
+git clone https://github.com/everestp/solana_minihack.git
+cd solana_minihack
