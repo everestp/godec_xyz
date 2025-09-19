@@ -73,5 +73,5 @@ Follow the steps below to set up and run the frontend app.
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/everestp/solana_minihack.git
-cd solana_minihack
+git clone https://github.com/everestp/godec_xyz.git
+cd godec_xyz
