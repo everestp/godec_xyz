@@ -2,148 +2,123 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Private Coin – Bitcoin Orange Theme (Solid Colors Only)  
-   • Uniform UI – No gradients anywhere  
-   • Solid Bitcoin Orange (`hsl(39, 100%, 53%)`)  
-   • Super clean, professional, privacy-ready  
-   • Dark mode + light mode support  
-   • All classes match your original structure  
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
 */
 
 @layer base {
   :root {
-    /* Base surfaces – clean dark slate */
-    --background: 220 15% 6%;
+    /* Existing Bitcoin-inspired dark theme */
+    --background: 220 13% 6%;
     --foreground: 39 12% 95%;
-    --card: 220 15% 9%;
+    --card: 220 13% 8%;
     --card-foreground: 39 12% 95%;
-    --popover: 220 15% 9%;
+    --popover: 220 13% 8%;
     --popover-foreground: 39 12% 95%;
-
-    /* Primary – Solid Bitcoin Orange */
-    --primary: 39 100% 53%;
-    --primary-foreground: 0 0% 100%; /* White text on orange */
-
-    /* Secondary – Neutral dark steel */
-    --secondary: 220 10% 15%;
+    --primary: 39 100% 53%; /* Bitcoin Orange */
+    --primary-foreground: 220 13% 6%;
+    --secondary: 217 19% 12%;
     --secondary-foreground: 39 12% 95%;
-
-    /* Muted */
-    --muted: 220 10% 15%;
-    --muted-foreground: 39 10% 70%;
-
-    /* Accent – Slightly lighter orange for highlights */
-    --accent: 39 95% 58%;
-    --accent-foreground: 0 0% 100%;
-
-    /* Destructive */
+    --muted: 217 19% 12%;
+    --muted-foreground: 39 12% 75%;
+    --accent: 43 96% 56%; /* Bitcoin Gold */
+    --accent-foreground: 220 13% 6%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-
-    /* Border/Input/Ring */
-    --border: 220 12% 18%;
-    --input: 220 12% 18%;
+    --destructive-foreground: 39 12% 95%;
+    --border: 217 19% 15%;
+    --input: 217 19% 15%;
     --ring: 39 100% 53%;
     --radius: 0.75rem;
-
-    /* Custom Tokens – Match original naming */
     --bitcoin-orange: 39 100% 53%;
-    --bitcoin-gold: 39 95% 58%; /* Solid accent, no gold gradient */
-    --bitcoin-dark: 220 15% 6%;
-    --bitcoin-card: 220 15% 9%;
-    --bitcoin-card-hover: 220 15% 12%;
+    --bitcoin-gold: 43 96% 56%;
+    --bitcoin-dark: 220 13% 6%;
+    --bitcoin-card: 220 13% 8%;
+    --bitcoin-card-hover: 220 13% 12%;
+    --gradient-bitcoin: linear-gradient(135deg, hsl(var(--bitcoin-orange)), hsl(var(--bitcoin-gold)));
+    --gradient-card: linear-gradient(135deg, hsl(var(--bitcoin-card)), hsl(var(--bitcoin-card-hover)));
     --shadow-bitcoin: 0 10px 30px -10px hsl(var(--bitcoin-orange) / 0.3);
     --shadow-bitcoin-glow: 0 0 40px hsl(var(--bitcoin-orange) / 0.2);
     --shadow-card: 0 4px 20px hsl(var(--bitcoin-dark) / 0.4);
-
-    /* Sidebar */
-    --sidebar-background: 220 15% 7%;
-    --sidebar-foreground: 39 12% 92%;
-    --sidebar-primary: 39 100% 53%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 10% 12%;
-    --sidebar-accent-foreground: 39 12% 90%;
-    --sidebar-border: 220 12% 16%;
-    --sidebar-ring: 39 100% 53%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
-  /* Dark Mode – Slightly deeper */
   .dark {
-    --background: 220 20% 4%;
+    /* Keep same dark theme as root for consistency */
+    --background: 220 13% 6%;
     --foreground: 39 12% 95%;
-    --card: 220 15% 7%;
+    --card: 220 13% 8%;
     --card-foreground: 39 12% 95%;
-    --popover: 220 15% 7%;
+    --popover: 220 13% 8%;
     --popover-foreground: 39 12% 95%;
-
     --primary: 39 100% 53%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 220 10% 13%;
+    --primary-foreground: 220 13% 6%;
+    --secondary: 217 19% 12%;
     --secondary-foreground: 39 12% 95%;
-
-    --muted: 220 10% 13%;
-    --muted-foreground: 39 10% 68%;
-
-    --accent: 39 95% 58%;
-    --accent-foreground: 0 0% 100%;
-
+    --muted: 217 19% 12%;
+    --muted-foreground: 39 12% 75%;
+    --accent: 43 96% 56%;
+    --accent-foreground: 220 13% 6%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 220 12% 16%;
-    --input: 220 12% 16%;
+    --destructive-foreground: 39 12% 95%;
+    --border: 217 19% 15%;
+    --input: 217 19% 15%;
     --ring: 39 100% 53%;
-
-    --sidebar-background: 220 20% 5%;
-    --sidebar-foreground: 39 12% 90%;
-    --sidebar-primary: 39 100% 53%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 10% 10%;
-    --sidebar-accent-foreground: 39 12% 88%;
-    --sidebar-border: 220 12% 14%;
-    --sidebar-ring: 39 100% 53%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
-  /* Light Mode – Clean & uniform */
-  .light {
-    --background: 30 50% 97%;
-    --foreground: 30 20% 12%;
+ .light {
+    --background: 30 100% 95%; /* soft light orange background */
+    --foreground: 30 20% 10%;  /* dark orange-ish text */
 
-    --card: 30 50% 99%;
-    --card-foreground: 30 20% 12%;
+    --card: 30 100% 97%; 
+    --card-foreground: 30 20% 10%;
 
-    --popover: 30 50% 97%;
-    --popover-foreground: 30 20% 12%;
+    --popover: 30 100% 95%;
+    --popover-foreground: 30 20% 10%;
 
-    --primary: 39 100% 50%;
+    --primary: 30 100% 60%; 
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 30% 92%;
-    --secondary-foreground: 30 20% 12%;
+    --secondary: 30 40% 90%;
+    --secondary-foreground: 30 20% 10%;
 
-    --muted: 30 30% 92%;
-    --muted-foreground: 30 20% 45%;
+    --muted: 30 40% 90%;
+    --muted-foreground: 30 20% 40%;
 
-    --accent: 39 95% 55%;
+    --accent: 30 80% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 25% 88%;
-    --input: 30 25% 88%;
-    --ring: 39 100% 50%;
+    --border: 30 30% 85%;
+    --input: 30 30% 85%;
+    --ring: 30 100% 60%;
 
-    --sidebar-background: 30 25% 18%;
-    --sidebar-foreground: 30 20% 94%;
-    --sidebar-primary: 39 100% 50%;
+    --sidebar-background: 30 20% 15%;
+    --sidebar-foreground: 30 20% 95%;
+    --sidebar-primary: 30 80% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 30 20% 23%;
-    --sidebar-accent-foreground: 30 20% 94%;
-    --sidebar-border: 30 20% 23%;
-    --sidebar-ring: 39 100% 50%;
-  }
+    --sidebar-accent: 30 15% 20%;
+    --sidebar-accent-foreground: 30 20% 95%;
+    --sidebar-border: 30 15% 20%;
+    --sidebar-ring: 30 90% 60%;
+}
+
 }
 
 @layer base {
@@ -152,41 +127,40 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground;
+    background-image: radial-gradient(circle at 20% 80%, hsl(var(--bitcoin-orange) / 0.1) 0%, transparent 50%),
+                      radial-gradient(circle at 80% 20%, hsl(var(--bitcoin-gold) / 0.1) 0%, transparent 50%);
     min-height: 100vh;
-  }
-
-  html {
-    scroll-behavior: smooth;
   }
 }
 
 @layer components {
-  /* Uniform card hover – solid only */
   .card-hover {
     @apply transition-all duration-300 hover:scale-105;
     box-shadow: var(--shadow-card);
   }
-
+  
   .card-hover:hover {
     box-shadow: var(--shadow-bitcoin);
+  
   }
-
-  /* Solid orange button */
-  .btn-primary {
-    @apply bg-[hsl(var(--primary))] text-primary-foreground font-medium px-5 py-2.5 rounded-md 
-           hover:ring-4 hover:ring-[hsl(var(--ring))/0.4] transition-all duration-200;
+  
+  .gradient-bitcoin {
+    background: var(--gradient-bitcoin);
   }
-
-  /* Bitcoin glow – solid orange */
+  
+  .gradient-card {
+    background: var(--gradient-card);
+  }
+  
   .bitcoin-glow {
     box-shadow: var(--shadow-bitcoin-glow);
   }
-
+  
   .animate-float {
     animation: float 3s ease-in-out infinite;
   }
-
+  
   .animate-pulse-glow {
     animation: pulse-glow 2s ease-in-out infinite alternate;
   }
@@ -197,32 +171,9 @@
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-10px); }
   }
-
+  
   @keyframes pulse-glow {
     0% { box-shadow: 0 0 20px hsl(var(--bitcoin-orange) / 0.4); }
     100% { box-shadow: 0 0 40px hsl(var(--bitcoin-orange) / 0.8); }
-  }
-
-  /* Solid orange text */
-  .text-bitcoin-solid {
-    @apply text-[hsl(var(--bitcoin-orange))] font-semibold;
-  }
-
-  /* Uniform subtle grid */
-  .bitcoin-grid {
-    background-image:
-      linear-gradient(hsl(var(--border) / 0.06) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--border) / 0.06) 1px, transparent 1px);
-    background-size: 20px 20px;
-  }
-
-  /* Terminal-style */
-  .font-terminal {
-    @apply font-mono text-sm tracking-tight;
-  }
-
-  /* Stealth opacity */
-  .opacity-stealth {
-    @apply opacity-70 hover:opacity-100 transition-opacity duration-200;
   }
 }
