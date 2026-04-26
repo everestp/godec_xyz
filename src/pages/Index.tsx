@@ -203,7 +203,7 @@ const Index = () => {
                 image={app.image}
                 route={app.route}
                 category={app.category}
-                status={index < 8? "live" : index < 8 ? "beta" : "coming-soon"}
+                status={index < 9? "live" : index < 9 ? "beta" : "coming-soon"}
               />
             </div>
           ))}
